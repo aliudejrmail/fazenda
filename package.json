@@ -1,0 +1,11 @@
+{
+  "name": "fazenda",
+  "private": true,
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "api:dev": "npm --prefix apps/api run start:dev",
+    "api:seed": "npm --prefix apps/api run prisma:seed",
+    "web:dev": "npm --prefix apps/web run dev"
+  }
+}

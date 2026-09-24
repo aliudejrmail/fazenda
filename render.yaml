@@ -1,0 +1,56 @@
+# Exported Blueprint for Render
+# https://render.com/docs/blueprint-spec
+#
+# 1) Envie o repo ao GitHub
+# 2) Render → New → Blueprint → selecione este repositório
+# 3) Após o deploy, preencha CORS_ORIGIN e NEXT_PUBLIC_API_URL (ver docs/DEPLOY_RENDER.md)
+
+databases:
+  # Se o plano free não estiver disponível na sua conta, crie um Postgres Starter
+  # ou use Neon (https://neon.tech) e cole DATABASE_URL manualmente na API.
+  - name: fazenda-db
+    plan: free
+
+services:
+  - type: web
+    name: fazenda-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: apps/api
+    buildCommand: npm install --include=dev && npx prisma generate && npm run build
+    startCommand: npm run start:render
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22.20.0"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fazenda-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: SEED_ON_BOOT
+        value: "true"
+      - key: CORS_ORIGIN
+        sync: false
+
+  - type: web
+    name: fazenda-web
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: apps/web
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: "22.20.0"
+      - key: NEXT_PUBLIC_API_URL
+        sync: false

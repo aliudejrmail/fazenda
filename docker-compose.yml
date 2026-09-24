@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fazenda-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fazenda
+      POSTGRES_PASSWORD: fazenda123
+      POSTGRES_DB: fazenda
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fazenda -d fazenda"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

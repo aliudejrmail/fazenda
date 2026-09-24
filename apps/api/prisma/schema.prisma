@@ -1,0 +1,459 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  MANAGER
+  VIEWER
+}
+
+enum ProductionSystem {
+  CRIA
+  RECRIA
+  CONFINAMENTO
+}
+
+enum HerdCategory {
+  MATRIZ
+  NOVILHA
+  BEZERRO
+  BEZERRA
+  GARROTE
+  BOI_MAGRO
+  BOI_GORDO
+  TOURO
+  DESCARTE
+}
+
+enum LotStatus {
+  ATIVO
+  ENCERRADO
+  VENDIDO
+}
+
+enum TrackingMode {
+  LOTE
+  INDIVIDUAL
+}
+
+enum MovementType {
+  TRANSFERENCIA
+  VENDA
+  COMPRA
+  AJUSTE
+}
+
+enum CullReason {
+  VAZIA_SEM_CRIA
+  IDADE
+  DOENCA
+  BAIXA_PRODUTIVIDADE
+  OUTRO
+}
+
+enum CostCenter {
+  PROPRIEDADE
+  CONFINAMENTO
+  FROTA
+  RH
+  ALMOXARIFADO
+  SANIDADE
+  OUTROS
+}
+
+enum RevenueType {
+  VENDA_GADO
+  LEITE
+  OUTROS
+}
+
+enum InventoryCategory {
+  RACAO
+  MEDICAMENTO
+  INSUMO
+  PECA
+  OUTROS
+}
+
+enum StockMovementType {
+  ENTRADA
+  SAIDA
+  AJUSTE
+}
+
+enum VehicleType {
+  TRATOR
+  CAMINHAO
+  UTILITARIO
+  OUTRO
+}
+
+enum EmployeeStatus {
+  ATIVO
+  INATIVO
+}
+
+model User {
+  id           String       @id @default(cuid())
+  name         String
+  email        String       @unique
+  passwordHash String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  memberships  Membership[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Farm {
+  id          String   @id @default(cuid())
+  name        String
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  memberships          Membership[]
+  herdLots             HerdLot[]
+  birthRecords         BirthRecord[]
+  mortalityRecords     MortalityRecord[]
+  cullRecords          CullRecord[]
+  replacementRecords   ReplacementRecord[]
+  herdMovements        HerdMovement[]
+  expenseCategories    ExpenseCategory[]
+  expenses             Expense[]
+  revenues             Revenue[]
+  vaccines             Vaccine[]
+  vaccinationCampaigns VaccinationCampaign[]
+  inventoryItems       InventoryItem[]
+  stockMovements       StockMovement[]
+  vehicles             Vehicle[]
+  fuelRecords          FuelRecord[]
+  maintenanceRecords   MaintenanceRecord[]
+  employees            Employee[]
+  payrollEntries       PayrollEntry[]
+  weighings            LotWeighing[]
+}
+
+model Membership {
+  id        String         @id @default(cuid())
+  userId    String
+  farmId    String
+  role      MembershipRole @default(MANAGER)
+  createdAt DateTime       @default(now())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farm      Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, farmId])
+}
+
+model HerdLot {
+  id            String           @id @default(cuid())
+  farmId        String
+  name          String
+  category      HerdCategory
+  system        ProductionSystem
+  quantity      Int              @default(0)
+  status        LotStatus        @default(ATIVO)
+  trackingMode  TrackingMode     @default(LOTE)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
+  farm          Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  birthRecords  BirthRecord[]
+  mortalityRecords MortalityRecord[]
+  cullRecords   CullRecord[]
+  replacementRecords ReplacementRecord[]
+  movementsFrom HerdMovement[]   @relation("MovementFrom")
+  movementsTo   HerdMovement[]   @relation("MovementTo")
+  campaigns     VaccinationCampaign[]
+  weighings     LotWeighing[]
+}
+
+model BirthRecord {
+  id              String   @id @default(cuid())
+  farmId          String
+  herdLotId       String?
+  date            DateTime
+  matricesParidas Int
+  bezerros        Int      @default(0)
+  bezerras        Int      @default(0)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot         HerdLot? @relation(fields: [herdLotId], references: [id])
+}
+
+model MortalityRecord {
+  id         String        @id @default(cuid())
+  farmId     String
+  herdLotId  String?
+  date       DateTime
+  category   HerdCategory?
+  quantity   Int
+  cause      String?
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  farm       Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot    HerdLot?      @relation(fields: [herdLotId], references: [id])
+}
+
+model CullRecord {
+  id         String     @id @default(cuid())
+  farmId     String
+  herdLotId  String?
+  date       DateTime
+  quantity   Int
+  reason     CullReason
+  notes      String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  farm       Farm       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot    HerdLot?   @relation(fields: [herdLotId], references: [id])
+}
+
+model ReplacementRecord {
+  id         String   @id @default(cuid())
+  farmId     String
+  herdLotId  String?
+  date       DateTime
+  quantity   Int
+  unitCost   Decimal  @db.Decimal(12, 2)
+  totalCost  Decimal  @db.Decimal(14, 2)
+  supplier   String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  farm       Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot    HerdLot? @relation(fields: [herdLotId], references: [id])
+}
+
+model HerdMovement {
+  id            String           @id @default(cuid())
+  farmId        String
+  type          MovementType
+  date          DateTime
+  quantity      Int
+  fromLotId     String?
+  toLotId       String?
+  toSystem      ProductionSystem?
+  unitPrice     Decimal?         @db.Decimal(12, 2)
+  totalPrice    Decimal?         @db.Decimal(14, 2)
+  weightArroba  Decimal?         @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  farm          Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  fromLot       HerdLot?         @relation("MovementFrom", fields: [fromLotId], references: [id])
+  toLot         HerdLot?         @relation("MovementTo", fields: [toLotId], references: [id])
+}
+
+model LotWeighing {
+  id           String   @id @default(cuid())
+  farmId       String
+  herdLotId    String
+  date         DateTime
+  avgWeightKg  Decimal  @db.Decimal(10, 2)
+  quantity     Int
+  notes        String?
+  createdAt    DateTime @default(now())
+  farm         Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot      HerdLot  @relation(fields: [herdLotId], references: [id], onDelete: Cascade)
+}
+
+model ExpenseCategory {
+  id         String     @id @default(cuid())
+  farmId     String
+  name       String
+  costCenter CostCenter
+  createdAt  DateTime   @default(now())
+  farm       Farm       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  expenses   Expense[]
+
+  @@unique([farmId, name])
+}
+
+model Expense {
+  id          String     @id @default(cuid())
+  farmId      String
+  categoryId  String?
+  costCenter  CostCenter
+  description String
+  amount      Decimal    @db.Decimal(14, 2)
+  date        DateTime
+  notes       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+  farm        Farm       @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory? @relation(fields: [categoryId], references: [id])
+}
+
+model Revenue {
+  id          String      @id @default(cuid())
+  farmId      String
+  type        RevenueType
+  description String
+  amount      Decimal     @db.Decimal(14, 2)
+  date        DateTime
+  quantity    Int?
+  weightArroba Decimal?   @db.Decimal(10, 2)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  farm        Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}
+
+model Vaccine {
+  id          String   @id @default(cuid())
+  farmId      String
+  name        String
+  manufacturer String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  campaigns   VaccinationCampaign[]
+}
+
+model VaccinationCampaign {
+  id          String   @id @default(cuid())
+  farmId      String
+  vaccineId   String
+  herdLotId   String?
+  date        DateTime
+  nextDueDate DateTime?
+  doses       Int
+  cost        Decimal  @db.Decimal(14, 2) @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  vaccine     Vaccine  @relation(fields: [vaccineId], references: [id], onDelete: Cascade)
+  herdLot     HerdLot? @relation(fields: [herdLotId], references: [id])
+}
+
+model InventoryItem {
+  id           String            @id @default(cuid())
+  farmId       String
+  name         String
+  category     InventoryCategory
+  unit         String
+  quantity     Decimal           @db.Decimal(14, 3) @default(0)
+  minQuantity  Decimal           @db.Decimal(14, 3) @default(0)
+  avgUnitCost  Decimal           @db.Decimal(12, 2) @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+  farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  movements    StockMovement[]
+}
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  farmId      String
+  itemId      String
+  type        StockMovementType
+  quantity    Decimal           @db.Decimal(14, 3)
+  unitCost    Decimal?          @db.Decimal(12, 2)
+  totalCost   Decimal?          @db.Decimal(14, 2)
+  date        DateTime
+  notes       String?
+  createdAt   DateTime          @default(now())
+  farm        Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  item        InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model Vehicle {
+  id         String      @id @default(cuid())
+  farmId     String
+  name       String
+  type       VehicleType
+  plate      String?
+  year       Int?
+  notes      String?
+  active     Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  deletedAt  DateTime?
+  farm       Farm        @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  fuelRecords FuelRecord[]
+  maintenances MaintenanceRecord[]
+}
+
+model FuelRecord {
+  id          String   @id @default(cuid())
+  farmId      String
+  vehicleId   String
+  date        DateTime
+  liters      Decimal  @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  totalCost   Decimal  @db.Decimal(14, 2)
+  odometer    Decimal? @db.Decimal(12, 1)
+  notes       String?
+  createdAt   DateTime @default(now())
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model MaintenanceRecord {
+  id          String   @id @default(cuid())
+  farmId      String
+  vehicleId   String
+  date        DateTime
+  description String
+  cost        Decimal  @db.Decimal(14, 2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model Employee {
+  id         String         @id @default(cuid())
+  farmId     String
+  name       String
+  role       String?
+  phone      String?
+  hireDate   DateTime?
+  salary     Decimal?       @db.Decimal(12, 2)
+  status     EmployeeStatus @default(ATIVO)
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  deletedAt  DateTime?
+  farm       Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  payroll    PayrollEntry[]
+}
+
+model PayrollEntry {
+  id          String   @id @default(cuid())
+  farmId      String
+  employeeId  String
+  referenceMonth DateTime
+  amount      Decimal  @db.Decimal(14, 2)
+  description String?
+  date        DateTime
+  createdAt   DateTime @default(now())
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+}
