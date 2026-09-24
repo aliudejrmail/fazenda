@@ -35,7 +35,7 @@ services:
       - key: SEED_ON_BOOT
         value: "true"
       - key: CORS_ORIGIN
-        sync: false
+        value: "https://fazenda-web.onrender.com"
 
   - type: web
     name: fazenda-web
