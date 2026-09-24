@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 function run(cmd, { optional = false } = {}) {
   console.log(`> ${cmd}`);
@@ -15,6 +17,24 @@ function run(cmd, { optional = false } = {}) {
   }
 }
 
+function resolveMain() {
+  const candidates = [
+    path.join(__dirname, '..', 'dist', 'main.js'),
+    path.join(__dirname, '..', 'dist', 'src', 'main.js'),
+  ];
+  for (const file of candidates) {
+    if (fs.existsSync(file)) return file;
+  }
+  const distDir = path.join(__dirname, '..', 'dist');
+  console.error('dist/main.js não encontrado. Conteúdo de dist/:');
+  if (fs.existsSync(distDir)) {
+    console.error(fs.readdirSync(distDir, { recursive: true }));
+  } else {
+    console.error('(pasta dist inexistente — o build pode não ter gerado artefatos)');
+  }
+  process.exit(1);
+}
+
 if (!process.env.DATABASE_URL) {
   console.error('DATABASE_URL não definida. Configure o Postgres no Render ou Neon.');
   process.exit(1);
@@ -26,4 +46,5 @@ if (process.env.SEED_ON_BOOT === 'true') {
   run('npx tsx prisma/seed.ts', { optional: true });
 }
 
-run('node dist/main');
+const mainFile = resolveMain();
+run(`node "${mainFile}"`);
