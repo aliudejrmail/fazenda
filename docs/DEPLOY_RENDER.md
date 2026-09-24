@@ -72,16 +72,16 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 
 ### API
 
-- **Root Directory:** `apps/api`
-- **Build Command:** `npm install --include=dev && npx prisma generate && npm run build`
-- **Start Command:** `npm run start:render`
+- **Root Directory:** *(deixe vazio)*
+- **Build Command:** `npm run build:api`
+- **Start Command:** `npm run start:api`
 - **Health Check Path:** `/api/v1/health`
 
 ### Web
 
-- **Root Directory:** `apps/web`
-- **Build Command:** `npm install && npm run build`
-- **Start Command:** `npm run start`
+- **Root Directory:** *(deixe vazio)*
+- **Build Command:** `npm run build`   (ou `npm run build:web`)
+- **Start Command:** `npm run start`   (ou `npm run start:web`)
 - Env: `NEXT_PUBLIC_API_URL=https://SUA-API.onrender.com/api/v1`
 
 ## 5. Testar a demo

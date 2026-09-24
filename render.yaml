@@ -1,13 +1,10 @@
 # Exported Blueprint for Render
 # https://render.com/docs/blueprint-spec
 #
-# 1) Envie o repo ao GitHub
-# 2) Render → New → Blueprint → selecione este repositório
-# 3) Após o deploy, preencha CORS_ORIGIN e NEXT_PUBLIC_API_URL (ver docs/DEPLOY_RENDER.md)
+# Se criar o serviço manualmente (sem Blueprint), use Root Directory vazio
+# e os comandos abaixo (já apontam para apps/api e apps/web).
 
 databases:
-  # Se o plano free não estiver disponível na sua conta, crie um Postgres Starter
-  # ou use Neon (https://neon.tech) e cole DATABASE_URL manualmente na API.
   - name: fazenda-db
     plan: free
 
@@ -17,9 +14,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: apps/api
-    buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    startCommand: npm run start:render
+    buildCommand: npm run build:api
+    startCommand: npm run start:api
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_VERSION
@@ -46,9 +42,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: apps/web
-    buildCommand: npm install && npm run build
-    startCommand: npm run start
+    buildCommand: npm run build:web
+    startCommand: npm run start:web
     envVars:
       - key: NODE_VERSION
         value: "22.20.0"
