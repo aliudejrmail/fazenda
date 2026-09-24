@@ -12,7 +12,7 @@
     "web:dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web install && npm --prefix apps/web run build",
     "start": "npm --prefix apps/web run start",
-    "build:api": "npm --prefix apps/api install --include=dev && npm --prefix apps/api exec prisma generate && npm --prefix apps/api run build",
+    "build:api": "npm --prefix apps/api ci --omit=dev --legacy-peer-deps && npm --prefix apps/api exec prisma generate && npm --prefix apps/api run build",
     "start:api": "npm --prefix apps/api run start:render",
     "build:web": "npm --prefix apps/web install && npm --prefix apps/web run build",
     "start:web": "npm --prefix apps/web run start"
