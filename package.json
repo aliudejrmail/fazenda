@@ -10,11 +10,11 @@
     "api:dev": "npm --prefix apps/api run start:dev",
     "api:seed": "npm --prefix apps/api run prisma:seed",
     "web:dev": "npm --prefix apps/web run dev",
-    "build": "npm --prefix apps/web install && npm --prefix apps/web run build",
+    "build": "npm --prefix apps/web ci && npm --prefix apps/web run build",
     "start": "npm --prefix apps/web run start",
-    "build:api": "npm --prefix apps/api ci --omit=dev --legacy-peer-deps && npm --prefix apps/api exec prisma generate && npm --prefix apps/api run build",
-    "start:api": "npm --prefix apps/api run start:render",
-    "build:web": "npm --prefix apps/web install && npm --prefix apps/web run build",
-    "start:web": "npm --prefix apps/web run start"
+    "build:api": "cd apps/api && npm ci --omit=dev --legacy-peer-deps && npx prisma generate && npm run build",
+    "start:api": "cd apps/api && npm run start:render",
+    "build:web": "cd apps/web && npm ci && npm run build",
+    "start:web": "cd apps/web && npm run start"
   }
 }
