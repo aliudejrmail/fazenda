@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/LayoutBits";
-import { Tabs } from "@/components/ui/Table";
 
 export default function LoginPage() {
-  const { login, register, hasToken, loading } = useAuth();
+  const { login, hasToken, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState("login");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -33,25 +31,6 @@ export default function LoginPage() {
     }
   }
 
-  async function onRegister(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setSubmitting(true);
-    const fd = new FormData(e.currentTarget);
-    try {
-      await register(
-        String(fd.get("name")),
-        String(fd.get("email")),
-        String(fd.get("password")),
-      );
-      router.replace("/fazendas");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha no cadastro");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-md rounded-xl border border-[var(--green)]/15 bg-white/80 p-6 shadow-sm">
@@ -64,61 +43,30 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Tabs
-          tabs={[
-            { id: "login", label: "Entrar" },
-            { id: "register", label: "Cadastrar" },
-          ]}
-          active={tab}
-          onChange={setTab}
-        />
-
         {error ? (
           <div className="mb-3">
             <Alert>{error}</Alert>
           </div>
         ) : null}
 
-        {tab === "login" ? (
-          <form onSubmit={onLogin} className="space-y-3">
-            <Input label="E-mail" name="email" type="email" required autoComplete="email" />
-            <Input
-              label="Senha"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-              autoComplete="current-password"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-2 w-full rounded-md bg-[var(--green)] px-4 py-2.5 text-sm font-medium text-[var(--cream)] hover:bg-[var(--green-dark)] disabled:opacity-50"
-            >
-              {submitting ? "Entrando..." : "Entrar"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={onRegister} className="space-y-3">
-            <Input label="Nome" name="name" required minLength={2} autoComplete="name" />
-            <Input label="E-mail" name="email" type="email" required autoComplete="email" />
-            <Input
-              label="Senha"
-              name="password"
-              type="password"
-              required
-              minLength={6}
-              autoComplete="new-password"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-2 w-full rounded-md bg-[var(--green)] px-4 py-2.5 text-sm font-medium text-[var(--cream)] hover:bg-[var(--green-dark)] disabled:opacity-50"
-            >
-              {submitting ? "Cadastrando..." : "Criar conta"}
-            </button>
-          </form>
-        )}
+        <form onSubmit={onLogin} className="space-y-3">
+          <Input label="E-mail" name="email" type="email" required autoComplete="email" />
+          <Input
+            label="Senha"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            autoComplete="current-password"
+          />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="mt-2 w-full rounded-md bg-[var(--green)] px-4 py-2.5 text-sm font-medium text-[var(--cream)] hover:bg-[var(--green-dark)] disabled:opacity-50"
+          >
+            {submitting ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
       </div>
     </div>
   );

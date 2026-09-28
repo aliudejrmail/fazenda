@@ -42,6 +42,12 @@ enum TrackingMode {
   INDIVIDUAL
 }
 
+enum LotSex {
+  MACHO
+  FEMEA
+  MISTO
+}
+
 enum MovementType {
   TRANSFERENCIA
   VENDA
@@ -54,6 +60,12 @@ enum CullReason {
   IDADE
   DOENCA
   BAIXA_PRODUTIVIDADE
+  OUTRO
+}
+
+enum PregnancyMethod {
+  ULTRASSOM
+  PALPACAO
   OUTRO
 }
 
@@ -148,6 +160,30 @@ model Farm {
   employees            Employee[]
   payrollEntries       PayrollEntry[]
   weighings            LotWeighing[]
+  retiros              Retiro[]
+  feedDiets            FeedDiet[]
+  feedAssignments      FeedAssignment[]
+  feedRecords          FeedRecord[]
+  pregnancyDiagnoses   PregnancyDiagnosis[]
+}
+
+model Retiro {
+  id                 String   @id @default(cuid())
+  farmId             String
+  name               String
+  notes              String?
+  matricesPregnant   Int      @default(0)
+  matricesEmpty      Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLots           HerdLot[]
+  birthRecords       BirthRecord[]
+  mortalityRecords   MortalityRecord[]
+  pregnancyDiagnoses PregnancyDiagnosis[]
+
+  @@unique([farmId, name])
 }
 
 model Membership {
@@ -163,32 +199,43 @@ model Membership {
 }
 
 model HerdLot {
-  id            String           @id @default(cuid())
-  farmId        String
-  name          String
-  category      HerdCategory
-  system        ProductionSystem
-  quantity      Int              @default(0)
-  status        LotStatus        @default(ATIVO)
-  trackingMode  TrackingMode     @default(LOTE)
-  notes         String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  deletedAt     DateTime?
-  farm          Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  birthRecords  BirthRecord[]
+  id              String           @id @default(cuid())
+  farmId          String
+  retiroId        String?
+  name            String
+  category        HerdCategory
+  system          ProductionSystem
+  sex             LotSex           @default(MISTO)
+  quantity        Int              @default(0)
+  initialQuantity Int?
+  entryDate       DateTime?
+  entryWeightKg   Decimal?         @db.Decimal(10, 2)
+  targetWeightKg  Decimal?         @db.Decimal(10, 2)
+  status          LotStatus        @default(ATIVO)
+  trackingMode    TrackingMode     @default(LOTE)
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  farm            Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  retiro          Retiro?          @relation(fields: [retiroId], references: [id], onDelete: SetNull)
+  birthRecords    BirthRecord[]
   mortalityRecords MortalityRecord[]
-  cullRecords   CullRecord[]
+  cullRecords     CullRecord[]
   replacementRecords ReplacementRecord[]
-  movementsFrom HerdMovement[]   @relation("MovementFrom")
-  movementsTo   HerdMovement[]   @relation("MovementTo")
-  campaigns     VaccinationCampaign[]
-  weighings     LotWeighing[]
+  movementsFrom   HerdMovement[]   @relation("MovementFrom")
+  movementsTo     HerdMovement[]   @relation("MovementTo")
+  campaigns       VaccinationCampaign[]
+  weighings       LotWeighing[]
+  feedAssignments FeedAssignment[]
+  feedRecords     FeedRecord[]
+  pregnancyDiagnoses PregnancyDiagnosis[]
 }
 
 model BirthRecord {
   id              String   @id @default(cuid())
   farmId          String
+  retiroId        String?
   herdLotId       String?
   date            DateTime
   matricesParidas Int
@@ -198,12 +245,34 @@ model BirthRecord {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  retiro          Retiro?  @relation(fields: [retiroId], references: [id], onDelete: SetNull)
   herdLot         HerdLot? @relation(fields: [herdLotId], references: [id])
+}
+
+model PregnancyDiagnosis {
+  id             String           @id @default(cuid())
+  farmId         String
+  retiroId       String?
+  herdLotId      String?
+  date           DateTime
+  pregnantCount  Int
+  emptyCount     Int
+  method         PregnancyMethod  @default(PALPACAO)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  farm           Farm             @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  retiro         Retiro?          @relation(fields: [retiroId], references: [id], onDelete: SetNull)
+  herdLot        HerdLot?         @relation(fields: [herdLotId], references: [id], onDelete: SetNull)
+
+  @@index([farmId, date])
+  @@index([retiroId, date])
 }
 
 model MortalityRecord {
   id         String        @id @default(cuid())
   farmId     String
+  retiroId   String?
   herdLotId  String?
   date       DateTime
   category   HerdCategory?
@@ -213,6 +282,7 @@ model MortalityRecord {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   farm       Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  retiro     Retiro?       @relation(fields: [retiroId], references: [id], onDelete: SetNull)
   herdLot    HerdLot?      @relation(fields: [herdLotId], references: [id])
 }
 
@@ -366,21 +436,92 @@ model InventoryItem {
   deletedAt    DateTime?
   farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
   movements    StockMovement[]
+  dietIngredients FeedDietIngredient[]
 }
 
 model StockMovement {
-  id          String            @id @default(cuid())
+  id           String            @id @default(cuid())
+  farmId       String
+  itemId       String
+  type         StockMovementType
+  quantity     Decimal           @db.Decimal(14, 3)
+  unitCost     Decimal?          @db.Decimal(12, 2)
+  totalCost    Decimal?          @db.Decimal(14, 2)
+  date         DateTime
+  notes        String?
+  feedRecordId String?
+  createdAt    DateTime          @default(now())
+  farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  item         InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  feedRecord   FeedRecord?       @relation(fields: [feedRecordId], references: [id], onDelete: SetNull)
+}
+
+model FeedDiet {
+  id          String   @id @default(cuid())
   farmId      String
-  itemId      String
-  type        StockMovementType
-  quantity    Decimal           @db.Decimal(14, 3)
-  unitCost    Decimal?          @db.Decimal(12, 2)
-  totalCost   Decimal?          @db.Decimal(14, 2)
-  date        DateTime
-  notes       String?
-  createdAt   DateTime          @default(now())
-  farm        Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
-  item        InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  kgPerAnimal Decimal  @db.Decimal(10, 3) @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  ingredients FeedDietIngredient[]
+  assignments FeedAssignment[]
+  records     FeedRecord[]
+
+  @@unique([farmId, name])
+}
+
+model FeedDietIngredient {
+  id              String        @id @default(cuid())
+  dietId          String
+  inventoryItemId String
+  percent         Decimal       @db.Decimal(6, 2)
+  diet            FeedDiet      @relation(fields: [dietId], references: [id], onDelete: Cascade)
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  @@unique([dietId, inventoryItemId])
+}
+
+model FeedAssignment {
+  id          String    @id @default(cuid())
+  farmId      String
+  herdLotId   String
+  dietId      String
+  startDate   DateTime
+  endDate     DateTime?
+  kgPerAnimal Decimal?  @db.Decimal(10, 3)
+  createdAt   DateTime  @default(now())
+  farm        Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot     HerdLot   @relation(fields: [herdLotId], references: [id], onDelete: Cascade)
+  diet        FeedDiet  @relation(fields: [dietId], references: [id], onDelete: Restrict)
+
+  @@index([farmId, herdLotId])
+}
+
+model FeedRecord {
+  id            String   @id @default(cuid())
+  farmId        String
+  herdLotId     String
+  dietId        String
+  date          DateTime
+  animals       Int
+  kgPerAnimal   Decimal  @db.Decimal(10, 3)
+  totalKg       Decimal  @db.Decimal(14, 3)
+  totalCost     Decimal  @db.Decimal(14, 2)
+  costPerKg     Decimal  @db.Decimal(12, 4)
+  costPerAnimal Decimal  @db.Decimal(12, 4)
+  notes         String?
+  createdAt     DateTime @default(now())
+  farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  herdLot       HerdLot  @relation(fields: [herdLotId], references: [id], onDelete: Cascade)
+  diet          FeedDiet @relation(fields: [dietId], references: [id], onDelete: Restrict)
+  stockMovements StockMovement[]
+
+  @@index([farmId, date])
+  @@index([herdLotId, date])
 }
 
 model Vehicle {

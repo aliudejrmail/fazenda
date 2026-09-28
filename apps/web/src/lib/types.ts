@@ -18,15 +18,76 @@ export type AuthResponse = {
   user: User;
 };
 
+export type Retiro = {
+  id: string;
+  name: string;
+  notes?: string | null;
+  matricesPregnant?: number;
+  matricesEmpty?: number;
+  herdLots?: HerdLot[];
+  _count?: { herdLots: number };
+};
+
+export type RetiroSummary = {
+  retiro: Retiro;
+  lots: HerdLot[];
+  summary: {
+    totalHeads: number;
+    matrices: number;
+    matricesPregnant: number;
+    matricesEmpty: number;
+    touros: number;
+    birthsYear: number;
+    deathsYear: number;
+    byCategory: Record<string, number>;
+    deathsByCategory: Record<string, number>;
+  };
+  recentBirths: BirthRecord[];
+  recentMortalities: MortalityRecord[];
+};
+
 export type HerdLot = {
   id: string;
   name: string;
   category: string;
   system: string;
+  sex?: string;
   quantity: number;
+  initialQuantity?: number | null;
+  entryDate?: string | null;
+  entryWeightKg?: number | string | null;
+  targetWeightKg?: number | string | null;
   trackingMode?: string;
   status?: string;
   notes?: string | null;
+  retiroId?: string | null;
+  retiro?: { id: string; name: string } | null;
+  createdAt?: string;
+};
+
+export type LotWeighingItem = {
+  id: string;
+  date: string;
+  quantity: number;
+  avgWeightKg: number;
+  totalWeightKg: number;
+  gmd: number | null;
+  notes?: string | null;
+};
+
+export type LotDetail = {
+  lot: HerdLot;
+  indicators: {
+    daysInLot: number;
+    currentWeightKg: number | null;
+    weightGainPerAnimal: number | null;
+    gmdPeriod: number | null;
+    gmdAccumulated: number | null;
+    remainingToTargetKg: number | null;
+    daysToTarget: number | null;
+    estimatedTargetDate: string | null;
+  };
+  weighings: LotWeighingItem[];
 };
 
 export type DashboardPendency = {
@@ -159,6 +220,86 @@ export type InventoryItem = {
   avgUnitCost?: number | string | null;
 };
 
+export type FeedDietIngredient = {
+  id?: string;
+  inventoryItemId: string;
+  percent: number | string;
+  inventoryItem?: InventoryItem;
+};
+
+export type FeedDiet = {
+  id: string;
+  name: string;
+  description?: string | null;
+  kgPerAnimal: number | string;
+  active: boolean;
+  ingredients: FeedDietIngredient[];
+};
+
+export type FeedAssignment = {
+  id: string;
+  herdLotId: string;
+  dietId: string;
+  startDate: string;
+  endDate?: string | null;
+  kgPerAnimal?: number | string | null;
+  herdLot?: { id: string; name: string; quantity: number };
+  diet?: { id: string; name: string; kgPerAnimal: number | string };
+};
+
+export type FeedRecord = {
+  id: string;
+  herdLotId: string;
+  dietId: string;
+  date: string;
+  animals: number;
+  kgPerAnimal: number | string;
+  totalKg: number | string;
+  totalCost: number | string;
+  costPerKg: number | string;
+  costPerAnimal: number | string;
+  notes?: string | null;
+  herdLot?: { id: string; name: string };
+  diet?: { id: string; name: string };
+};
+
+export type FeedingSummary = {
+  totals: {
+    records: number;
+    totalKg: number;
+    totalCost: number;
+    avgCostPerKg: number | null;
+    avgCostPerAnimalDay: number | null;
+  };
+  byLot: Array<{
+    herdLotId: string;
+    herdLotName: string;
+    totalKg: number;
+    totalCost: number;
+    records: number;
+    costPerKg: number | null;
+  }>;
+  lowStock: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    minQuantity: number;
+    unit: string;
+  }>;
+  recent: Array<{
+    id: string;
+    date: string;
+    herdLotId: string;
+    herdLotName: string;
+    dietName: string;
+    animals: number;
+    totalKg: number;
+    totalCost: number;
+    costPerKg: number;
+    costPerAnimal: number;
+  }>;
+};
+
 export type StockMovement = {
   id: string;
   itemId: string;
@@ -230,6 +371,98 @@ export type BirthRecord = {
   bezerras: number;
   herdLotId?: string | null;
   notes?: string | null;
+};
+
+export type PregnancyDiagnosis = {
+  id: string;
+  date: string;
+  pregnantCount: number;
+  emptyCount: number;
+  method: string;
+  notes?: string | null;
+  retiroId?: string | null;
+  herdLotId?: string | null;
+  retiro?: { id: string; name: string } | null;
+  herdLot?: { id: string; name: string } | null;
+};
+
+export type ReportsOverview = {
+  period: { from: string; to: string };
+  herd: {
+    totalHeads: number;
+    lots: Array<{
+      id: string;
+      name: string;
+      category: string;
+      system: string;
+      quantity: number;
+      retiro: string | null;
+    }>;
+    byCategory: Array<{ name: string; quantity: number }>;
+    bySystem: Array<{ name: string; quantity: number }>;
+    births: { matricesParidas: number; bezerros: number; bezerras: number };
+    deaths: number;
+    discarded: number;
+  };
+  pregnancy: {
+    pregnant: number;
+    empty: number;
+    rate: number | null;
+    byRetiro: Array<{
+      id: string;
+      name: string;
+      pregnant: number;
+      empty: number;
+      rate: number | null;
+    }>;
+  };
+  gmd: {
+    lots: Array<{
+      lotId: string;
+      lotName: string;
+      gmd: number;
+      weighings: number;
+    }>;
+    avgGmd: number | null;
+  };
+  finance: {
+    totalExpenses: number;
+    totalRevenues: number;
+    result: number;
+    expensesByCenter: Array<{ costCenter: string; amount: number }>;
+  };
+  vaccines: Array<{
+    id: string;
+    date: string;
+    vaccine: string;
+    lot: string | null;
+    doses: number;
+    cost: number;
+    nextDueDate?: string | null;
+  }>;
+  feeding: {
+    totalKg: number;
+    totalCost: number;
+    costPerKg: number | null;
+    records: Array<{
+      id: string;
+      date: string;
+      lot: string;
+      diet: string;
+      animals: number;
+      totalKg: number;
+      totalCost: number;
+    }>;
+  };
+  inventory: Array<{
+    id: string;
+    name: string;
+    category: string;
+    quantity: number;
+    minQuantity: number;
+    unit: string;
+    low: boolean;
+  }>;
 };
 
 export type MortalityRecord = {

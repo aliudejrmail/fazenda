@@ -11,8 +11,10 @@ import {
 import {
   CullReason,
   HerdCategory,
+  LotSex,
   LotStatus,
   MovementType,
+  PregnancyMethod,
   ProductionSystem,
   TrackingMode,
 } from '@prisma/client';
@@ -35,8 +37,36 @@ export class CreateHerdLotDto {
   quantity!: number;
 
   @IsOptional()
+  @IsEnum(LotSex)
+  sex?: LotSex;
+
+  @IsOptional()
   @IsEnum(TrackingMode)
   trackingMode?: TrackingMode;
+
+  @IsOptional()
+  @IsString()
+  retiroId?: string;
+
+  @IsOptional()
+  @IsDateString()
+  entryDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  initialQuantity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  entryWeightKg?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  targetWeightKg?: number;
 
   @IsOptional()
   @IsString()
@@ -57,6 +87,10 @@ export class UpdateHerdLotDto {
   system?: ProductionSystem;
 
   @IsOptional()
+  @IsEnum(LotSex)
+  sex?: LotSex;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Type(() => Number)
@@ -65,6 +99,30 @@ export class UpdateHerdLotDto {
   @IsOptional()
   @IsEnum(LotStatus)
   status?: LotStatus;
+
+  @IsOptional()
+  @IsString()
+  retiroId?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  entryDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  initialQuantity?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  entryWeightKg?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  targetWeightKg?: number;
 
   @IsOptional()
   @IsString()
@@ -96,6 +154,10 @@ export class CreateBirthDto {
 
   @IsOptional()
   @IsString()
+  retiroId?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 
@@ -115,6 +177,10 @@ export class CreateMortalityDto {
   @IsOptional()
   @IsString()
   herdLotId?: string;
+
+  @IsOptional()
+  @IsString()
+  retiroId?: string;
 
   @IsOptional()
   @IsString()
@@ -231,6 +297,37 @@ export class CreateWeighingDto {
   @Min(1)
   @Type(() => Number)
   quantity!: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+}
+
+export class CreatePregnancyDiagnosisDto {
+  @IsDateString()
+  date!: string;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  pregnantCount!: number;
+
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  emptyCount!: number;
+
+  @IsOptional()
+  @IsEnum(PregnancyMethod)
+  method?: PregnancyMethod;
+
+  @IsOptional()
+  @IsString()
+  retiroId?: string;
+
+  @IsOptional()
+  @IsString()
+  herdLotId?: string;
 
   @IsOptional()
   @IsString()

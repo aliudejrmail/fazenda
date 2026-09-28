@@ -24,10 +24,12 @@ export class DashboardService {
       expenses,
       revenues,
       upcomingVaccines,
+      overdueVaccines,
       allCampaigns,
       lowStock,
       weighings,
       replacements,
+      retiros,
     ] = await Promise.all([
       this.prisma.herdLot.findMany({
         where: { farmId, deletedAt: null },
@@ -63,6 +65,12 @@ export class DashboardService {
         take: 10,
       }),
       this.prisma.vaccinationCampaign.findMany({
+        where: { farmId, nextDueDate: { lt: now } },
+        include: { vaccine: true, herdLot: true },
+        orderBy: { nextDueDate: 'desc' },
+        take: 10,
+      }),
+      this.prisma.vaccinationCampaign.findMany({
         where: { farmId, date: { gte: startOfMonth, lte: endOfMonth } },
       }),
       this.prisma.inventoryItem.findMany({
@@ -75,6 +83,9 @@ export class DashboardService {
       }),
       this.prisma.replacementRecord.findMany({
         where: { farmId, date: { gte: startOfMonth, lte: endOfMonth } },
+      }),
+      this.prisma.retiro.findMany({
+        where: { farmId, deletedAt: null },
       }),
     ]);
 
@@ -114,10 +125,18 @@ export class DashboardService {
       (byCategory.NOVILHA ?? 0) +
       (byCategory.GARROTE ?? 0);
 
+    const pregnantTotal = retiros.reduce((s, r) => s + r.matricesPregnant, 0);
+    const emptyTotal = retiros.reduce((s, r) => s + r.matricesEmpty, 0);
+    const diagnosedTotal = pregnantTotal + emptyTotal;
     const pregnancyRate =
-      matrizes > 0
-        ? Math.min(100, Number(((matricesParidas / matrizes) * 100).toFixed(1)))
-        : 0;
+      diagnosedTotal > 0
+        ? Number(((pregnantTotal / diagnosedTotal) * 100).toFixed(1))
+        : matrizes > 0
+          ? Math.min(
+              100,
+              Number(((matricesParidas / matrizes) * 100).toFixed(1)),
+            )
+          : 0;
 
     const gmdByLot = this.computeGmdByLot(weighings);
     const avgGmd =
@@ -148,6 +167,7 @@ export class DashboardService {
 
     const criticalAlerts =
       lowStockItems.length +
+      overdueVaccines.length +
       upcomingVaccines.filter((v) => {
         if (!v.nextDueDate) return false;
         const days =
@@ -156,10 +176,18 @@ export class DashboardService {
       }).length +
       (deaths > 0 ? 1 : 0);
 
+    const lastWeighingByLot = new Map<string, Date>();
+    for (const w of weighings) {
+      const prev = lastWeighingByLot.get(w.herdLotId);
+      if (!prev || w.date > prev) lastWeighingByLot.set(w.herdLotId, w.date);
+    }
+
     const pendencies = this.buildPendencies(
-      upcomingVaccines,
+      [...overdueVaccines, ...upcomingVaccines],
       lowStockItems,
       culls,
+      activeLots,
+      lastWeighingByLot,
       now,
     );
 
@@ -195,6 +223,8 @@ export class DashboardService {
       byCategoryStacked,
       reproductivePipeline: [
         { stage: 'Matrizes aptas', value: matrizes },
+        { stage: 'Prenhes', value: pregnantTotal },
+        { stage: 'Vazias', value: emptyTotal },
         {
           stage: 'Reposição (mês)',
           value: replaced,
@@ -310,8 +340,16 @@ export class DashboardService {
       vaccine: { name: string } | null;
       herdLot: { name: string } | null;
     }>,
-    lowStock: Array<{ id: string; name: string }>,
+    lowStock: Array<{ id: string; name: string; category?: string }>,
     culls: Array<{ id: string; quantity: number; date: Date }>,
+    activeLots: Array<{
+      id: string;
+      name: string;
+      system: string;
+      entryDate: Date | null;
+      createdAt: Date;
+    }>,
+    lastWeighingByLot: Map<string, Date>,
     now: Date,
   ) {
     const items: Array<{
@@ -322,8 +360,10 @@ export class DashboardService {
       status: 'ATRASADA' | 'PENDENTE' | 'CRITICO';
     }> = [];
 
+    const seenVaccines = new Set<string>();
     for (const v of vaccines) {
-      if (!v.nextDueDate) continue;
+      if (!v.nextDueDate || seenVaccines.has(v.id)) continue;
+      seenVaccines.add(v.id);
       const days =
         (v.nextDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
       let status: 'ATRASADA' | 'PENDENTE' | 'CRITICO' = 'PENDENTE';
@@ -338,13 +378,35 @@ export class DashboardService {
       });
     }
 
-    for (const item of lowStock.slice(0, 5)) {
+    for (const item of lowStock.slice(0, 8)) {
       items.push({
         id: `stock-${item.id}`,
-        type: 'Estoque',
+        type:
+          item.category === 'RACAO' || item.category === 'INSUMO'
+            ? 'Estoque ração'
+            : 'Estoque',
         target: item.name,
         dueDate: now.toISOString(),
         status: 'CRITICO',
+      });
+    }
+
+    const weighingDaysLimit = 30;
+    for (const lot of activeLots) {
+      if (lot.system === 'CRIA') continue;
+      const last = lastWeighingByLot.get(lot.id);
+      const reference = last ?? lot.entryDate ?? lot.createdAt;
+      const days =
+        (now.getTime() - reference.getTime()) / (1000 * 60 * 60 * 24);
+      if (days < weighingDaysLimit) continue;
+      const due = new Date(reference);
+      due.setDate(due.getDate() + weighingDaysLimit);
+      items.push({
+        id: `weigh-${lot.id}`,
+        type: 'Pesagem',
+        target: `${lot.name} — há ${Math.floor(days)} dias`,
+        dueDate: due.toISOString(),
+        status: days >= 45 ? 'ATRASADA' : 'PENDENTE',
       });
     }
 
@@ -359,6 +421,9 @@ export class DashboardService {
       });
     }
 
-    return items.slice(0, 8);
+    const order = { ATRASADA: 0, CRITICO: 1, PENDENTE: 2 };
+    return items
+      .sort((a, b) => order[a.status] - order[b.status])
+      .slice(0, 12);
   }
 }

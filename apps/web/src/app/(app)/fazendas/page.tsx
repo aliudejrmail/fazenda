@@ -23,6 +23,7 @@ export default function FazendasPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Farm | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +68,31 @@ export default function FazendasPage() {
     }
   }
 
+  async function onUpdate(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editing) return;
+    setSubmitting(true);
+    setError("");
+    const fd = new FormData(e.currentTarget);
+    try {
+      await api<Farm>(`/farms/${editing.id}`, {
+        method: "PATCH",
+        skipFarm: true,
+        body: JSON.stringify({
+          name: String(fd.get("name")),
+          city: String(fd.get("city") || "") || undefined,
+          state: String(fd.get("state") || "") || undefined,
+        }),
+      });
+      setEditing(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao editar fazenda");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function onSelect(id: string) {
     selectFarm(id);
     router.push("/");
@@ -76,7 +102,7 @@ export default function FazendasPage() {
     <div>
       <PageHeader
         title="Fazendas"
-        description="Cadastre e selecione a fazenda de trabalho"
+        description="Cadastre, edite e selecione a fazenda de trabalho"
       />
 
       {error ? (
@@ -85,13 +111,55 @@ export default function FazendasPage() {
         </div>
       ) : null}
 
-      <FormCard title="Nova fazenda" onSubmit={onCreate} submitting={submitting}>
-        <FormGrid>
-          <Input label="Nome" name="name" required minLength={2} />
-          <Input label="Cidade" name="city" />
-          <Input label="UF" name="state" maxLength={2} />
-        </FormGrid>
-      </FormCard>
+      {editing ? (
+        <FormCard
+          title={`Editar fazenda — ${editing.name}`}
+          onSubmit={onUpdate}
+          submitting={submitting}
+          submitLabel="Salvar alterações"
+        >
+          <FormGrid>
+            <Input
+              label="Nome"
+              name="name"
+              required
+              minLength={2}
+              defaultValue={editing.name}
+              key={`name-${editing.id}`}
+            />
+            <Input
+              label="Cidade"
+              name="city"
+              defaultValue={editing.city ?? ""}
+              key={`city-${editing.id}`}
+            />
+            <Input
+              label="UF"
+              name="state"
+              maxLength={2}
+              defaultValue={editing.state ?? ""}
+              key={`state-${editing.id}`}
+            />
+          </FormGrid>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditing(null)}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </FormCard>
+      ) : (
+        <FormCard title="Nova fazenda" onSubmit={onCreate} submitting={submitting}>
+          <FormGrid>
+            <Input label="Nome" name="name" required minLength={2} />
+            <Input label="Cidade" name="city" />
+            <Input label="UF" name="state" maxLength={2} />
+          </FormGrid>
+        </FormCard>
+      )}
 
       {loading ? (
         <p className="text-sm text-[var(--ink-muted)]">Carregando...</p>
@@ -112,13 +180,22 @@ export default function FazendasPage() {
               </Td>
               <Td>{farm.role ?? "—"}</Td>
               <Td>
-                <Button
-                  type="button"
-                  variant={selectedFarmId === farm.id ? "secondary" : "primary"}
-                  onClick={() => onSelect(farm.id)}
-                >
-                  {selectedFarmId === farm.id ? "Selecionada" : "Selecionar"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setEditing(farm)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectedFarmId === farm.id ? "secondary" : "primary"}
+                    onClick={() => onSelect(farm.id)}
+                  >
+                    {selectedFarmId === farm.id ? "Selecionada" : "Selecionar"}
+                  </Button>
+                </div>
               </Td>
             </tr>
           ))}

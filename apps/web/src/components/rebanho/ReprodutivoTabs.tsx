@@ -1,10 +1,19 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
-import type { BirthRecord, CullRecord, HerdLot, MortalityRecord, ReplacementRecord } from "@/lib/types";
+import type {
+  BirthRecord,
+  CullRecord,
+  HerdLot,
+  MortalityRecord,
+  PregnancyDiagnosis,
+  ReplacementRecord,
+  Retiro,
+} from "@/lib/types";
 import {
   CULL_REASON_LABELS,
   HERD_CATEGORY_LABELS,
+  PREGNANCY_METHOD_LABELS,
   formatCurrency,
   formatDate,
   formatNumber,
@@ -267,6 +276,105 @@ export function ReplacementsTab({
               <Td>{r.supplier ?? "—"}</Td>
             </tr>
           ))}
+        </Table>
+      </ListEmpty>
+    </>
+  );
+}
+
+export function PregnancyTab({
+  diagnoses,
+  lots,
+  retiros,
+  submitting,
+  submit,
+}: {
+  diagnoses: PregnancyDiagnosis[];
+  lots: HerdLot[];
+  retiros: Retiro[];
+  submitting: boolean;
+  submit: SubmitFn;
+}) {
+  return (
+    <>
+      <FormCard
+        title="Registrar diagnóstico de prenhez"
+        submitting={submitting}
+        submitLabel="Salvar diagnóstico"
+        onSubmit={(e: FormEvent<HTMLFormElement>) => {
+          const fd = new FormData(e.currentTarget);
+          return submit(
+            "/herd/pregnancy-diagnoses",
+            {
+              date: String(fd.get("date")),
+              pregnantCount: Number(fd.get("pregnantCount")),
+              emptyCount: Number(fd.get("emptyCount")),
+              method: String(fd.get("method") || "PALPACAO"),
+              retiroId: String(fd.get("retiroId") || "") || undefined,
+              herdLotId: String(fd.get("herdLotId") || "") || undefined,
+              notes: String(fd.get("notes") || "") || undefined,
+            },
+            e.currentTarget,
+          );
+        }}
+      >
+        <FormGrid>
+          <Input label="Data" name="date" type="date" required defaultValue={todayISO()} />
+          <Input
+            label="Matrizes prenhes"
+            name="pregnantCount"
+            type="number"
+            min={0}
+            required
+            defaultValue={0}
+          />
+          <Input
+            label="Matrizes vazias"
+            name="emptyCount"
+            type="number"
+            min={0}
+            required
+            defaultValue={0}
+          />
+          <Select label="Método" name="method" defaultValue="PALPACAO">
+            {optionsFrom(PREGNANCY_METHOD_LABELS).map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+          <Select label="Retiro" name="retiroId" defaultValue="">
+            <option value="">—</option>
+            {retiros.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </Select>
+          <LotSelect lots={lots} />
+          <Textarea label="Observações" name="notes" />
+        </FormGrid>
+      </FormCard>
+      <ListEmpty empty={diagnoses.length === 0} message="Nenhum diagnóstico registrado.">
+        <Table headers={["Data", "Prenhes", "Vazias", "Taxa", "Método", "Retiro", "Lote"]}>
+          {diagnoses.map((d) => {
+            const total = d.pregnantCount + d.emptyCount;
+            const rate =
+              total > 0
+                ? `${((d.pregnantCount / total) * 100).toFixed(1)}%`
+                : "—";
+            return (
+              <tr key={d.id}>
+                <Td>{formatDate(d.date)}</Td>
+                <Td>{formatNumber(d.pregnantCount)}</Td>
+                <Td>{formatNumber(d.emptyCount)}</Td>
+                <Td>{rate}</Td>
+                <Td>{labelOf(PREGNANCY_METHOD_LABELS, d.method)}</Td>
+                <Td>{d.retiro?.name ?? "—"}</Td>
+                <Td>{d.herdLot?.name ?? "—"}</Td>
+              </tr>
+            );
+          })}
         </Table>
       </ListEmpty>
     </>

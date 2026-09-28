@@ -1,0 +1,9 @@
+-- CreateEnum
+CREATE TYPE "LotSex" AS ENUM ('MACHO', 'FEMEA', 'MISTO');
+
+-- AlterTable
+ALTER TABLE "HerdLot" ADD COLUMN "sex" "LotSex" NOT NULL DEFAULT 'MISTO';
+ALTER TABLE "HerdLot" ADD COLUMN "initialQuantity" INTEGER;
+ALTER TABLE "HerdLot" ADD COLUMN "entryDate" TIMESTAMP(3);
+ALTER TABLE "HerdLot" ADD COLUMN "entryWeightKg" DECIMAL(10,2);
+ALTER TABLE "HerdLot" ADD COLUMN "targetWeightKg" DECIMAL(10,2);

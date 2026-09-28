@@ -34,6 +34,12 @@ export const CULL_REASON_LABELS: Record<string, string> = {
   OUTRO: "Outro",
 };
 
+export const PREGNANCY_METHOD_LABELS: Record<string, string> = {
+  ULTRASSOM: "Ultrassom",
+  PALPACAO: "Palpação",
+  OUTRO: "Outro",
+};
+
 export const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   TRANSFERENCIA: "Transferência",
   VENDA: "Venda",
@@ -79,6 +85,12 @@ export const LOT_STATUS_LABELS: Record<string, string> = {
   VENDIDO: "Vendido",
 };
 
+export const LOT_SEX_LABELS: Record<string, string> = {
+  MACHO: "Macho",
+  FEMEA: "Fêmea",
+  MISTO: "Misto",
+};
+
 export function labelOf(
   map: Record<string, string>,
   value?: string | null,
@@ -105,6 +117,33 @@ export function formatDate(value?: string | Date | null): string {
 export function formatNumber(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? Number(value) : (value ?? 0);
   return new Intl.NumberFormat("pt-BR").format(Number.isFinite(n) ? n : 0);
+}
+
+export function formatKg(value: number | string | null | undefined): string {
+  if (value == null || value === "") return "—";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n)) return "—";
+  return `${new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n)} kg`;
+}
+
+export function formatGmd(value: number | string | null | undefined): string {
+  if (value == null || value === "") return "—";
+  const n = typeof value === "string" ? Number(value) : value;
+  if (!Number.isFinite(n)) return "—";
+  return `${new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 3,
+  }).format(n)} kg/dia`;
+}
+
+export function toDateInput(value?: string | Date | null): string {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
 }
 
 export function todayISO(): string {

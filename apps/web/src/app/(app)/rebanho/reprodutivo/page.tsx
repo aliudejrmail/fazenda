@@ -7,7 +7,9 @@ import type {
   CullRecord,
   HerdLot,
   MortalityRecord,
+  PregnancyDiagnosis,
   ReplacementRecord,
+  Retiro,
 } from "@/lib/types";
 import { Alert, PageHeader } from "@/components/ui/LayoutBits";
 import { Tabs } from "@/components/ui/Table";
@@ -15,14 +17,22 @@ import {
   BirthsTab,
   CullsTab,
   MortalitiesTab,
+  PregnancyTab,
   ReplacementsTab,
 } from "@/components/rebanho/ReprodutivoTabs";
 
-type TabId = "births" | "mortalities" | "culls" | "replacements";
+type TabId =
+  | "pregnancy"
+  | "births"
+  | "mortalities"
+  | "culls"
+  | "replacements";
 
 export default function ReprodutivoPage() {
-  const [tab, setTab] = useState<TabId>("births");
+  const [tab, setTab] = useState<TabId>("pregnancy");
   const [lots, setLots] = useState<HerdLot[]>([]);
+  const [retiros, setRetiros] = useState<Retiro[]>([]);
+  const [diagnoses, setDiagnoses] = useState<PregnancyDiagnosis[]>([]);
   const [births, setBirths] = useState<BirthRecord[]>([]);
   const [mortalities, setMortalities] = useState<MortalityRecord[]>([]);
   const [culls, setCulls] = useState<CullRecord[]>([]);
@@ -33,14 +43,18 @@ export default function ReprodutivoPage() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const [l, b, m, c, r] = await Promise.all([
+      const [l, retirosData, d, b, m, c, r] = await Promise.all([
         api<HerdLot[]>("/herd/lots"),
+        api<Retiro[]>("/retiros"),
+        api<PregnancyDiagnosis[]>("/herd/pregnancy-diagnoses"),
         api<BirthRecord[]>("/herd/births"),
         api<MortalityRecord[]>("/herd/mortalities"),
         api<CullRecord[]>("/herd/culls"),
         api<ReplacementRecord[]>("/herd/replacements"),
       ]);
       setLots(l);
+      setRetiros(retirosData);
+      setDiagnoses(d);
       setBirths(b);
       setMortalities(m);
       setCulls(c);
@@ -76,7 +90,7 @@ export default function ReprodutivoPage() {
     <div>
       <PageHeader
         title="Reprodutivo"
-        description="Nascimentos, mortalidade, descarte e reposição"
+        description="Prenhez, nascimentos, mortalidade, descarte e reposição"
       />
       {error ? (
         <div className="mb-4">
@@ -86,6 +100,7 @@ export default function ReprodutivoPage() {
 
       <Tabs
         tabs={[
+          { id: "pregnancy", label: "Prenhez" },
           { id: "births", label: "Nascimentos" },
           { id: "mortalities", label: "Mortalidade" },
           { id: "culls", label: "Descarte" },
@@ -95,6 +110,15 @@ export default function ReprodutivoPage() {
         onChange={(id) => setTab(id as TabId)}
       />
 
+      {tab === "pregnancy" ? (
+        <PregnancyTab
+          diagnoses={diagnoses}
+          lots={lots}
+          retiros={retiros}
+          submitting={submitting}
+          submit={submit}
+        />
+      ) : null}
       {tab === "births" ? (
         <BirthsTab births={births} lots={lots} submitting={submitting} submit={submit} />
       ) : null}

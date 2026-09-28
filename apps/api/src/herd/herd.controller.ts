@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,6 +20,7 @@ import {
   CreateHerdLotDto,
   CreateMortalityDto,
   CreateMovementDto,
+  CreatePregnancyDiagnosisDto,
   CreateReplacementDto,
   CreateWeighingDto,
   UpdateHerdLotDto,
@@ -33,13 +35,21 @@ export class HerdController {
   constructor(private readonly herdService: HerdService) {}
 
   @Get('lots')
-  listLots(@FarmId() farmId: string) {
-    return this.herdService.listLots(farmId);
+  listLots(
+    @FarmId() farmId: string,
+    @Query('retiroId') retiroId?: string,
+  ) {
+    return this.herdService.listLots(farmId, retiroId);
   }
 
   @Post('lots')
   createLot(@FarmId() farmId: string, @Body() dto: CreateHerdLotDto) {
     return this.herdService.createLot(farmId, dto);
+  }
+
+  @Get('lots/:id')
+  getLotDetail(@FarmId() farmId: string, @Param('id') id: string) {
+    return this.herdService.getLotDetail(farmId, id);
   }
 
   @Patch('lots/:id')
@@ -57,8 +67,11 @@ export class HerdController {
   }
 
   @Get('births')
-  listBirths(@FarmId() farmId: string) {
-    return this.herdService.listBirths(farmId);
+  listBirths(
+    @FarmId() farmId: string,
+    @Query('retiroId') retiroId?: string,
+  ) {
+    return this.herdService.listBirths(farmId, retiroId);
   }
 
   @Post('births')
@@ -67,8 +80,11 @@ export class HerdController {
   }
 
   @Get('mortalities')
-  listMortalities(@FarmId() farmId: string) {
-    return this.herdService.listMortalities(farmId);
+  listMortalities(
+    @FarmId() farmId: string,
+    @Query('retiroId') retiroId?: string,
+  ) {
+    return this.herdService.listMortalities(farmId, retiroId);
   }
 
   @Post('mortalities')
@@ -117,5 +133,21 @@ export class HerdController {
   @Post('weighings')
   createWeighing(@FarmId() farmId: string, @Body() dto: CreateWeighingDto) {
     return this.herdService.createWeighing(farmId, dto);
+  }
+
+  @Get('pregnancy-diagnoses')
+  listPregnancyDiagnoses(
+    @FarmId() farmId: string,
+    @Query('retiroId') retiroId?: string,
+  ) {
+    return this.herdService.listPregnancyDiagnoses(farmId, retiroId);
+  }
+
+  @Post('pregnancy-diagnoses')
+  createPregnancyDiagnosis(
+    @FarmId() farmId: string,
+    @Body() dto: CreatePregnancyDiagnosisDto,
+  ) {
+    return this.herdService.createPregnancyDiagnosis(farmId, dto);
   }
 }

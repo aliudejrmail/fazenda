@@ -104,6 +104,7 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 | Sintoma | Solução |
 |---------|---------|
 | Web chama `localhost:3001` | `NEXT_PUBLIC_API_URL` não foi setada **antes** do build — redeploy a web |
-| CORS bloqueado | `CORS_ORIGIN` deve ser exatamente a URL da web (https, sem barra no final) |
+| CORS bloqueado | `CORS_ORIGIN` deve ser exatamente a URL da web (https, sem barra no final). Se a API retornar 502, o browser também mostra erro de CORS — veja os logs da API |
+| API 502 Bad Gateway | Quase sempre `DATABASE_URL` ausente/inválida ou migrate falhou. Use Neon se o Postgres free do Render não existir. Confira **Logs** do serviço `fazenda-api` |
 | Login inválido | Aguarde o start com seed (`SEED_ON_BOOT=true`) ou rode `npm run prisma:seed` no Shell do Render |
 | Build da API falha no Prisma | Confirme que `prisma/migrations` está no Git |

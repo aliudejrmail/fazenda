@@ -10,6 +10,9 @@ import { InventoryModule } from './inventory/inventory.module';
 import { FleetModule } from './fleet/fleet.module';
 import { EmployeesModule } from './employees/employees.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { RetirosModule } from './retiros/retiros.module';
+import { FeedingModule } from './feeding/feeding.module';
+import { ReportsModule } from './reports/reports.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -18,13 +21,16 @@ import { HealthController } from './health.controller';
     PrismaModule,
     AuthModule,
     FarmsModule,
+    RetirosModule,
     HerdModule,
+    FeedingModule,
     FinanceModule,
     VaccinesModule,
     InventoryModule,
     FleetModule,
     EmployeesModule,
     DashboardModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
 })

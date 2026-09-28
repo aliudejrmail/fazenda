@@ -52,13 +52,40 @@ async function main() {
 
   const lotCount = await prisma.herdLot.count({ where: { farmId: farm.id } });
   if (lotCount === 0) {
+    const retiro1 = await prisma.retiro.create({
+      data: {
+        farmId: farm.id,
+        name: 'Retiro 01',
+        matricesPregnant: 90,
+        matricesEmpty: 30,
+      },
+    });
+    await prisma.retiro.createMany({
+      data: [
+        { farmId: farm.id, name: 'Retiro 02', matricesPregnant: 60, matricesEmpty: 20 },
+        { farmId: farm.id, name: 'Retiro 03', matricesPregnant: 40, matricesEmpty: 15 },
+        { farmId: farm.id, name: 'Retiro 04', matricesPregnant: 25, matricesEmpty: 10 },
+      ],
+    });
+
     const matrizes = await prisma.herdLot.create({
       data: {
         farmId: farm.id,
+        retiroId: retiro1.id,
         name: 'Matrizes Pasto Norte',
         category: 'MATRIZ',
         system: 'CRIA',
         quantity: 120,
+      },
+    });
+    await prisma.herdLot.create({
+      data: {
+        farmId: farm.id,
+        retiroId: retiro1.id,
+        name: 'Touros Retiro 01',
+        category: 'TOURO',
+        system: 'CRIA',
+        quantity: 8,
       },
     });
     await prisma.herdLot.create({
@@ -83,6 +110,7 @@ async function main() {
     await prisma.birthRecord.create({
       data: {
         farmId: farm.id,
+        retiroId: retiro1.id,
         herdLotId: matrizes.id,
         date: new Date(),
         matricesParidas: 8,
@@ -163,15 +191,74 @@ async function main() {
       },
     });
 
+    const milho = await prisma.inventoryItem.create({
+      data: {
+        farmId: farm.id,
+        name: 'Milho',
+        category: 'RACAO',
+        unit: 'kg',
+        quantity: 6800,
+        minQuantity: 1000,
+        avgUnitCost: 0.95,
+      },
+    });
+    const nucleo = await prisma.inventoryItem.create({
+      data: {
+        farmId: farm.id,
+        name: 'Núcleo',
+        category: 'RACAO',
+        unit: 'kg',
+        quantity: 1240,
+        minQuantity: 200,
+        avgUnitCost: 3.8,
+      },
+    });
+    const racao = await prisma.inventoryItem.create({
+      data: {
+        farmId: farm.id,
+        name: 'Ração pronta',
+        category: 'RACAO',
+        unit: 'kg',
+        quantity: 3500,
+        minQuantity: 500,
+        avgUnitCost: 1.45,
+      },
+    });
     await prisma.inventoryItem.create({
       data: {
         farmId: farm.id,
-        name: 'Ração confinamento',
-        category: 'RACAO',
+        name: 'Sal mineral',
+        category: 'INSUMO',
         unit: 'kg',
-        quantity: 5000,
-        minQuantity: 1000,
-        avgUnitCost: 1.25,
+        quantity: 420,
+        minQuantity: 80,
+        avgUnitCost: 2.1,
+      },
+    });
+
+    const diet = await prisma.feedDiet.create({
+      data: {
+        farmId: farm.id,
+        name: 'Confinamento padrão',
+        description: 'Dieta de engorda 70/20/10',
+        kgPerAnimal: 10,
+        ingredients: {
+          create: [
+            { inventoryItemId: milho.id, percent: 70 },
+            { inventoryItemId: nucleo.id, percent: 20 },
+            { inventoryItemId: racao.id, percent: 10 },
+          ],
+        },
+      },
+    });
+
+    await prisma.feedAssignment.create({
+      data: {
+        farmId: farm.id,
+        herdLotId: confinamento.id,
+        dietId: diet.id,
+        startDate: new Date(),
+        kgPerAnimal: 10,
       },
     });
 

@@ -8,11 +8,14 @@ import { useAuth } from "@/lib/auth-context";
 const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/fazendas", label: "Fazendas" },
+  { href: "/retiros", label: "Retiros" },
   { href: "/rebanho", label: "Rebanho" },
   { href: "/rebanho/reprodutivo", label: "Reprodutivo" },
   { href: "/rebanho/movimentacoes", label: "Movimentações" },
   { href: "/financeiro", label: "Financeiro" },
+  { href: "/relatorios", label: "Relatórios" },
   { href: "/vacinas", label: "Vacinas" },
+  { href: "/alimentacao", label: "Alimentação" },
   { href: "/almoxarifado", label: "Almoxarifado" },
   { href: "/frota", label: "Frota" },
   { href: "/funcionarios", label: "Funcionários" },
@@ -54,7 +57,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const active =
                   item.href === "/"
                     ? pathname === "/"
-                    : pathname === item.href;
+                    : pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(`${item.href}/`));
                 return (
                   <Link
                     key={item.href}
