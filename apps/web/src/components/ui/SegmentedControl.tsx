@@ -34,7 +34,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={label}
-      className="inline-flex max-w-full overflow-x-auto rounded-full border border-[var(--line-strong)] bg-[var(--cream-deep)] p-1"
+      className="scroll-x-hidden inline-flex max-w-full overflow-x-auto rounded-full border border-[var(--line-strong)] bg-[var(--cream-deep)] p-1"
     >
       {options.map((opt, i) => {
         const selected = opt.value === value;
@@ -50,7 +50,7 @@ export function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(opt.value)}
             onKeyDown={(e) => onKeyDown(e, i)}
-            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--earth-strong)] ${
+            className={`min-h-10 whitespace-nowrap rounded-full px-4 py-1.5 text-sm sm:min-h-0 font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--earth-strong)] ${
               selected
                 ? "bg-[var(--green)] text-white shadow-[var(--shadow-sm)]"
                 : "text-[var(--ink-muted)] hover:text-[var(--green)]"

@@ -1,0 +1,171 @@
+/*
+ * Ajustes de responsividade / mobile (importado por globals.css).
+ * Mantidos fora do globals.css para o arquivo de tokens continuar enxuto.
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  overflow-wrap: break-word;
+}
+
+/* Remove o atraso de duplo toque e evita zoom acidental em botões/links. */
+a,
+button,
+select,
+summary,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+/* Drawer / folha inferior abertos no celular: trava a rolagem da página ao fundo. */
+@media (max-width: 1023px) {
+  html.nav-open,
+  html.sheet-open {
+    overflow: hidden;
+  }
+}
+
+/* Folha inferior (lançamentos rápidos) entrando de baixo para cima. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-up {
+  animation: sheet-up 0.22s ease-out;
+}
+
+/*
+ * Telas de toque: `background-attachment: fixed` é ignorado/instável no iOS e
+ * `backdrop-filter` pesa em aparelhos modestos. Mantemos o visual sem o custo.
+ */
+@media (max-width: 1023px) {
+  body {
+    background-attachment: scroll;
+  }
+
+  .ui-surface {
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Abas / controles com rolagem horizontal, sem barra visível. */
+.scroll-x-hidden {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-x-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Valores numéricos longos não estouram o card em telas estreitas. */
+.ui-stat-value {
+  font-size: clamp(1.05rem, 5vw, 1.35rem);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .ui-stat-value {
+    font-size: 1.35rem;
+  }
+}
+
+/*
+ * Tabela -> lista de cartões (< 768px).
+ * Os rótulos vêm de `data-label`, preenchido pelo componente <Table>.
+ */
+@media (max-width: 767px) {
+  .rt-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .rt-wrap .rt,
+  .rt-wrap .rt > tbody {
+    display: block;
+    width: 100%;
+  }
+
+  /* Cabeçalho só para leitores de tela. */
+  .rt-wrap .rt > thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .rt-wrap .rt > tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .rt-wrap .rt > tbody > tr {
+    display: block;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface-solid);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .rt-wrap .rt > tbody > tr > td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0;
+    text-align: right;
+  }
+
+  .rt-wrap .rt > tbody > tr > td + td {
+    border-top: 1px solid var(--line);
+  }
+
+  .rt-wrap .rt > tbody > tr > td::before {
+    content: attr(data-label);
+    flex: none;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  /* Coluna de ações (cabeçalho vazio): sem rótulo, botões alinhados à esquerda. */
+  .rt-wrap .rt > tbody > tr > td[data-label=""] {
+    justify-content: flex-start;
+    padding-top: 0.6rem;
+  }
+
+  .rt-wrap .rt > tbody > tr > td[data-label=""]::before {
+    display: none;
+  }
+}

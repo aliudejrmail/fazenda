@@ -139,7 +139,7 @@ export default function DashboardPage() {
         highlight="pecuário"
         description="Visão operacional da fazenda selecionada"
         actions={
-          <label className="inline-flex items-center gap-2 rounded-xl bg-[var(--green)] px-3.5 py-2.5 text-sm text-[var(--cream)] shadow-[var(--shadow-sm)]">
+          <label className="flex w-full flex-wrap items-center gap-2 rounded-xl bg-[var(--green)] px-3.5 py-2.5 text-sm text-[var(--cream)] shadow-[var(--shadow-sm)] sm:inline-flex sm:w-auto">
             <span className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-75">
               Período
             </span>
@@ -147,14 +147,14 @@ export default function DashboardPage() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded-md bg-white/10 px-1.5 py-0.5 text-white outline-none"
+              className="min-h-10 min-w-0 flex-1 rounded-md bg-white/10 px-2 py-1 text-base text-white outline-none sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5 sm:text-sm"
             />
             <span className="opacity-60">a</span>
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded-md bg-white/10 px-1.5 py-0.5 text-white outline-none"
+              className="min-h-10 min-w-0 flex-1 rounded-md bg-white/10 px-2 py-1 text-base text-white outline-none sm:min-h-0 sm:flex-none sm:px-1.5 sm:py-0.5 sm:text-sm"
             />
           </label>
         }
@@ -250,7 +250,7 @@ export default function DashboardPage() {
         ]}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <KpiCard
           label="Partos no período"
           value={formatNumber(data.month.matricesParidas)}
@@ -279,25 +279,25 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <ModuleShortcuts metrics={shortcutMetrics} />
         </div>
         <AgendaDoDia data={data.pendencies} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <CategoryBars data={filteredStacked} />
         <ReproductiveFunnel data={data.reproductivePipeline} />
         <HealthBars data={data.healthOccurrences} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <WeightLine data={data.weightEvolution} />
         <GmdBars data={data.gmdByLot} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <LotControlTable data={filteredLots} />
         <DashCard title="Financeiro do período">
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">

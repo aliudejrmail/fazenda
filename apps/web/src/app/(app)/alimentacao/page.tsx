@@ -206,7 +206,7 @@ export default function AlimentacaoPage() {
         <div className="mt-4 space-y-6">
           {summary ? (
             <>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Stat label="Registros" value={formatNumber(summary.totals.records)} />
                 <Stat label="Total consumido" value={`${formatNumber(summary.totals.totalKg)} kg`} />
                 <Stat label="Custo total" value={formatCurrency(summary.totals.totalCost)} />
@@ -313,9 +313,15 @@ export default function AlimentacaoPage() {
                 </Button>
               </div>
               {ingredients.map((row, idx) => (
-                <div key={idx} className="grid gap-2 sm:grid-cols-[1fr_120px_auto]">
+                <div
+                  key={idx}
+                  // Celular: rótulos sempre visíveis (campos empilhados). Desktop: só na 1ª linha.
+                  className={`grid gap-2 rounded-lg border border-[var(--line)] p-3 sm:grid-cols-[1fr_120px_auto] sm:rounded-none sm:border-0 sm:p-0 ${
+                    idx > 0 ? "sm:[&_label>span:first-child]:sr-only" : ""
+                  }`}
+                >
                   <Select
-                    label={idx === 0 ? "Insumo" : ""}
+                    label="Insumo"
                     value={row.inventoryItemId}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -334,7 +340,7 @@ export default function AlimentacaoPage() {
                     ))}
                   </Select>
                   <Input
-                    label={idx === 0 ? "%" : ""}
+                    label="%"
                     type="number"
                     step="0.01"
                     min={0.01}
@@ -349,7 +355,7 @@ export default function AlimentacaoPage() {
                       );
                     }}
                   />
-                  <div className={idx === 0 ? "pt-6" : ""}>
+                  <div className={idx === 0 ? "sm:pt-6" : ""}>
                     <Button
                       type="button"
                       variant="ghost"

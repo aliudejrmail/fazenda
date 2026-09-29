@@ -33,7 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.15fr_0.85fr]">
+    <div className="grid min-h-dvh lg:grid-cols-[1.15fr_0.85fr]">
       <section className="relative hidden overflow-hidden bg-[var(--green)] text-[var(--cream)] lg:flex lg:flex-col lg:justify-between lg:p-12 xl:p-16">
         <div
           className="pointer-events-none absolute inset-0"
@@ -100,7 +100,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="relative flex items-center justify-center px-5 py-10 sm:px-8">
+      <section className="relative flex items-center justify-center px-5 py-[max(2.5rem,env(safe-area-inset-top))] sm:px-8">
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden">
             <p className="font-[family-name:var(--font-display)] text-4xl text-[var(--green)]">

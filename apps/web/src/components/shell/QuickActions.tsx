@@ -75,12 +75,20 @@ export function QuickActions({ variant }: { variant: Variant }) {
 
   const isFab = variant === "fab";
 
+  // Folha inferior aberta (celular): trava a rolagem da página ao fundo.
+  useEffect(() => {
+    if (!open || !isFab) return;
+    const root = document.documentElement;
+    root.classList.add("sheet-open");
+    return () => root.classList.remove("sheet-open");
+  }, [open, isFab]);
+
   return (
     <div
       ref={ref}
       className={
         isFab
-          ? "no-print fixed bottom-5 right-5 z-30 lg:hidden"
+          ? "no-print fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1.25rem,env(safe-area-inset-right))] z-30 lg:hidden"
           : "no-print relative hidden lg:block"
       }
     >
@@ -108,32 +116,75 @@ export function QuickActions({ variant }: { variant: Variant }) {
       </button>
 
       {open ? (
-        <div
-          ref={menuRef}
-          role="menu"
-          aria-label="Lançamentos rápidos"
-          onKeyDown={onMenuKeyDown}
-          className={`absolute w-72 overflow-hidden rounded-xl border border-[var(--line-strong)] bg-[var(--surface-solid)] py-1.5 shadow-[var(--shadow-md)] ${
-            isFab ? "bottom-full right-0 mb-3" : "right-0 top-full mt-2"
-          }`}
-        >
-          <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
-            Lançamentos rápidos
-          </p>
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              role="menuitem"
-              className="flex items-center gap-3 px-4 py-2 text-sm text-[var(--ink)] transition hover:bg-[var(--cream-deep)] focus-visible:bg-[var(--cream-deep)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--earth-strong)]"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--earth)]/12 text-[var(--earth-strong)]">
-                <Icon name={action.icon} size={16} />
-              </span>
-              {action.label}
-            </Link>
-          ))}
-        </div>
+        <>
+          {/* Celular: fundo escurecido que fecha a folha ao tocar fora dela. */}
+          {isFab ? (
+            <div
+              aria-hidden
+              className="fixed inset-0 -z-10 bg-[var(--green-dark)]/45 backdrop-blur-[2px]"
+              onClick={() => setOpen(false)}
+            />
+          ) : null}
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label="Lançamentos rápidos"
+            onKeyDown={onMenuKeyDown}
+            className={
+              isFab
+                ? "sheet-up fixed inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-[var(--line-strong)] bg-[var(--surface-solid)] pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-12px_32px_rgba(47,59,36,0.18)]"
+                : "absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-xl border border-[var(--line-strong)] bg-[var(--surface-solid)] py-1.5 shadow-[var(--shadow-md)]"
+            }
+          >
+            {isFab ? (
+              <div className="sticky top-0 z-10 bg-[var(--surface-solid)] pb-1 pt-2.5">
+                <span
+                  aria-hidden
+                  className="mx-auto block h-1 w-10 rounded-full bg-[var(--line-strong)]"
+                />
+                <div className="flex items-center justify-between px-4 pt-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                    Lançamentos rápidos
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false);
+                      buttonRef.current?.focus();
+                    }}
+                    aria-label="Fechar lançamentos rápidos"
+                    className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ink-muted)] transition hover:bg-[var(--cream-deep)]"
+                  >
+                    <Icon name="close" size={20} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+                Lançamentos rápidos
+              </p>
+            )}
+            {QUICK_ACTIONS.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                role="menuitem"
+                className={`flex items-center gap-3 px-4 text-[var(--ink)] transition hover:bg-[var(--cream-deep)] focus-visible:bg-[var(--cream-deep)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--earth-strong)] ${
+                  isFab ? "min-h-14 py-2 text-base" : "min-h-11 py-2 text-sm"
+                }`}
+              >
+                <span
+                  className={`flex shrink-0 items-center justify-center rounded-full bg-[var(--earth)]/12 text-[var(--earth-strong)] ${
+                    isFab ? "h-10 w-10" : "h-8 w-8"
+                  }`}
+                >
+                  <Icon name={action.icon} size={isFab ? 20 : 16} />
+                </span>
+                {action.label}
+              </Link>
+            ))}
+          </div>
+        </>
       ) : null}
     </div>
   );

@@ -17,6 +17,21 @@ export function AppShell({ children }: { children: ReactNode }) {
     setOpen(false);
   }, [pathname]);
 
+  // Gaveta aberta (celular): trava a rolagem do fundo e fecha com Esc.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    root.classList.add("nav-open");
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      root.classList.remove("nav-open");
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   async function handleLogout() {
     await logout();
     router.replace("/login");
@@ -26,14 +41,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const canCreate = selectedFarm?.role !== "VIEWER";
 
   return (
-    <div className="min-h-screen text-[var(--ink)]">
-      <div className="flex min-h-screen">
+    <div className="min-h-dvh text-[var(--ink)]">
+      <div className="flex min-h-dvh">
         <Sidebar
           open={open}
           pathname={pathname}
           farmName={selectedFarm?.name}
           userName={user?.name}
           onLogout={handleLogout}
+          onClose={() => setOpen(false)}
         />
 
         {open ? (
@@ -47,14 +63,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="ui-topbar sticky top-0 z-20 border-b border-[var(--line)] bg-[var(--cream)]/85 backdrop-blur-md">
-            <div className="flex items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-3 px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] sm:px-6 sm:py-3 lg:px-8">
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-3 py-2 text-sm font-medium text-[var(--green)] shadow-[var(--shadow-sm)] lg:hidden"
+                aria-label="Abrir menu"
+                aria-expanded={open}
+                className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-3 text-sm font-medium text-[var(--green)] shadow-[var(--shadow-sm)] lg:hidden"
               >
-                <Icon name="menu" size={18} />
-                Menu
+                <Icon name="menu" size={20} />
+                <span className="hidden sm:inline">Menu</span>
               </button>
 
               <div className="min-w-0 flex-1">
@@ -75,7 +93,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          {/* pb extra no celular: o botão flutuante não cobre o fim da página */}
+          <main className="mx-auto w-full min-w-0 max-w-[1400px] flex-1 px-4 pb-28 pt-5 sm:px-6 sm:pt-6 lg:px-8 lg:py-8">
+
             {children}
           </main>
         </div>

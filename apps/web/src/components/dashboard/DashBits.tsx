@@ -41,14 +41,14 @@ export function KpiCard({
     accent: "border-[var(--earth)]/35 bg-[var(--earth)]/[0.04]",
   };
   return (
-    <div className={`ui-surface px-3.5 py-3.5 ${tones[tone]}`}>
+    <div className={`ui-surface min-w-0 px-3 py-3 sm:px-3.5 sm:py-3.5 ${tones[tone]}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="ui-stat-label">{label}</p>
         {icon ? (
           <span className="text-[var(--green-soft)] opacity-85">{icon}</span>
         ) : null}
       </div>
-      <p className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-[var(--green-dark)]">
+      <p className="mt-2 font-[family-name:var(--font-display)] text-xl font-semibold sm:text-2xl text-[var(--green-dark)]">
         {value}
       </p>
     </div>
@@ -90,12 +90,12 @@ export function FilterSelect({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="flex min-w-[120px] flex-1 flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+    <label className="flex min-w-[calc(50%-0.375rem)] flex-1 flex-col gap-1.5 sm:min-w-[120px] text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-2.5 py-2 text-sm font-normal normal-case text-[var(--ink)] shadow-[var(--shadow-sm)] outline-none focus:border-[var(--green-soft)] focus:ring-2 focus:ring-[var(--green-soft)]/20"
+        className="rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-2.5 py-2 min-h-11 text-base sm:min-h-0 sm:text-sm font-normal normal-case text-[var(--ink)] shadow-[var(--shadow-sm)] outline-none focus:border-[var(--green-soft)] focus:ring-2 focus:ring-[var(--green-soft)]/20"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

@@ -156,7 +156,7 @@ export default function RetiroDetailPage() {
         </div>
       ) : null}
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total de animais" value={formatNumber(s.totalHeads)} />
         <Stat label="Matrizes" value={formatNumber(s.matrices)} />
         <Stat label="Matrizes prenhes" value={formatNumber(s.matricesPregnant)} />

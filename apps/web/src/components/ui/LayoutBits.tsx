@@ -38,7 +38,7 @@ export function PageHeader({
   const eyebrowText = eyebrow ?? context?.group.label;
 
   return (
-    <div className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-5 flex flex-col gap-4 border-b border-[var(--line)] pb-4 sm:mb-7 sm:flex-row sm:items-end sm:justify-between sm:pb-5">
       <div className="min-w-0">
         <div className="mb-2 flex items-center gap-2.5">
           <span className="h-1 w-10 shrink-0 rounded-full bg-[var(--earth)]" aria-hidden />
@@ -49,7 +49,7 @@ export function PageHeader({
             </p>
           ) : null}
         </div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--green)] sm:text-[2rem]">
+        <h1 className="font-[family-name:var(--font-display)] text-2xl leading-tight text-[var(--green)] sm:text-[2rem]">
           <TitleWithHighlight title={title} highlight={highlight} />
         </h1>
         {description ? (
@@ -59,7 +59,7 @@ export function PageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>
       ) : null}
     </div>
   );
@@ -75,8 +75,8 @@ export function Section({
   actions?: ReactNode;
 }) {
   return (
-    <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className="mb-6 sm:mb-8">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <h2 className="font-[family-name:var(--font-display)] text-xl text-[var(--green)]">
           {title}
         </h2>
@@ -149,7 +149,7 @@ export function FormCard({
         e.preventDefault();
         void onSubmit(e);
       }}
-      className="ui-surface mb-6 p-5"
+      className="ui-surface mb-6 p-4 sm:p-5"
     >
       <div className="mb-4 flex items-center gap-2">
         <span className="h-4 w-1 rounded-full bg-[var(--earth)]" aria-hidden />
@@ -159,7 +159,7 @@ export function FormCard({
       </div>
       <div className="space-y-3.5">{children}</div>
       <div className="mt-5">
-        <Button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
           {submitting ? "Salvando..." : submitLabel}
         </Button>
       </div>

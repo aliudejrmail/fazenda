@@ -14,6 +14,9 @@ import {
 } from "recharts";
 import type { DashboardSummary } from "@/lib/types";
 import { HERD_CATEGORY_LABELS, formatNumber, labelOf } from "@/lib/format";
+import { useNarrow } from "@/lib/use-narrow";
+import { Table, Td } from "@/components/ui/Table";
+import { categoryAxisProps, truncate, valueAxisProps } from "./chart-axis";
 import { DashCard } from "./DashBits";
 
 const CHART = {
@@ -30,6 +33,7 @@ export function CategoryBars({
 }: {
   data: DashboardSummary["byCategoryStacked"];
 }) {
+  const narrow = useNarrow();
   const rows = data.map((d) => ({
     ...d,
     name: labelOf(HERD_CATEGORY_LABELS, d.category),
@@ -44,8 +48,8 @@ export function CategoryBars({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={rows} barCategoryGap="28%">
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e2d6" vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#6b655c" }} />
-              <YAxis tick={{ fontSize: 11, fill: "#6b655c" }} />
+              <XAxis dataKey="name" {...categoryAxisProps(narrow)} />
+              <YAxis {...valueAxisProps(narrow)} />
               <Tooltip />
               <Bar dataKey="cria" stackId="a" fill={CHART.cria} name="Cria" radius={[0, 0, 0, 0]} />
               <Bar dataKey="recria" stackId="a" fill={CHART.recria} name="Recria" />
@@ -113,14 +117,15 @@ export function HealthBars({
 }: {
   data: DashboardSummary["healthOccurrences"];
 }) {
+  const narrow = useNarrow();
   return (
     <DashCard title="Ocorrências de sanidade">
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} barCategoryGap="35%">
             <CartesianGrid strokeDasharray="3 3" stroke="#e8e2d6" vertical={false} />
-            <XAxis dataKey="type" tick={{ fontSize: 11, fill: "#6b655c" }} />
-            <YAxis tick={{ fontSize: 11, fill: "#6b655c" }} />
+            <XAxis dataKey="type" {...categoryAxisProps(narrow)} />
+            <YAxis {...valueAxisProps(narrow)} />
             <Tooltip />
             <Bar dataKey="value" name="Qtd" radius={[6, 6, 0, 0]}>
               {data.map((_, i) => (
@@ -139,6 +144,7 @@ export function WeightLine({
 }: {
   data: DashboardSummary["weightEvolution"];
 }) {
+  const narrow = useNarrow();
   return (
     <DashCard title="Evolução de peso">
       {data.length === 0 ? (
@@ -150,8 +156,13 @@ export function WeightLine({
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e2d6" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#6b655c" }} />
-              <YAxis tick={{ fontSize: 11, fill: "#6b655c" }} />
+              <XAxis
+                dataKey="month"
+                interval={narrow ? "preserveStartEnd" : "preserveEnd"}
+                minTickGap={narrow ? 24 : 5}
+                tick={{ fontSize: narrow ? 10 : 11, fill: "#6b655c" }}
+              />
+              <YAxis {...valueAxisProps(narrow)} />
               <Tooltip />
               <Line
                 type="monotone"
@@ -170,6 +181,7 @@ export function WeightLine({
 }
 
 export function GmdBars({ data }: { data: DashboardSummary["gmdByLot"] }) {
+  const narrow = useNarrow();
   return (
     <DashCard title="GMD por lote">
       {data.length === 0 ? (
@@ -179,14 +191,15 @@ export function GmdBars({ data }: { data: DashboardSummary["gmdByLot"] }) {
       ) : (
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" margin={{ left: 16 }}>
+            <BarChart data={data} layout="vertical" margin={{ left: 0, right: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e8e2d6" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11, fill: "#6b655c" }} />
               <YAxis
                 type="category"
                 dataKey="lotName"
-                width={90}
-                tick={{ fontSize: 11, fill: "#6b655c" }}
+                width={narrow ? 64 : 90}
+                tickFormatter={(v) => truncate(v, narrow ? 9 : 14)}
+                tick={{ fontSize: narrow ? 10 : 11, fill: "#6b655c" }}
               />
               <Tooltip />
               <Bar dataKey="gmd" name="GMD (kg/dia)" fill={CHART.gmd} radius={[0, 6, 6, 0]} />
@@ -208,44 +221,33 @@ export function LotControlTable({
       {data.length === 0 ? (
         <p className="py-8 text-center text-sm text-[#6b655c]">Nenhum lote ativo</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#e8e2d6] text-[11px] uppercase tracking-wide text-[#6b655c]">
-                <th className="pb-2 pr-3 font-medium">Lote</th>
-                <th className="pb-2 pr-3 font-medium">Sistema</th>
-                <th className="pb-2 pr-3 font-medium">Categoria</th>
-                <th className="pb-2 pr-3 font-medium">Cabeças</th>
-                <th className="pb-2 pr-3 font-medium">Dias no lote</th>
-                <th className="pb-2 font-medium">Indicador</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row) => (
-                <tr key={row.id} className="border-b border-[#f0ebe3]">
-                  <td className="py-2.5 pr-3 font-medium text-[#2f3b24]">{row.name}</td>
-                  <td className="py-2.5 pr-3 text-[#6b655c]">{row.system}</td>
-                  <td className="py-2.5 pr-3 text-[#6b655c]">
-                    {labelOf(HERD_CATEGORY_LABELS, row.category)}
-                  </td>
-                  <td className="py-2.5 pr-3">{formatNumber(row.quantity)}</td>
-                  <td className="py-2.5 pr-3">{formatNumber(row.daysInLot)}</td>
-                  <td className="py-2.5">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                        row.densityHint > 80
-                          ? "bg-[#e8a54b] text-[#6b3f00]"
-                          : "bg-[#3d4f2f] text-white"
-                      }`}
-                    >
-                      {row.densityHint} cab./ciclo
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          headers={["Lote", "Sistema", "Categoria", "Cabeças", "Dias no lote", "Indicador"]}
+        >
+          {data.map((row) => (
+            <tr key={row.id}>
+              <Td className="font-medium text-[#2f3b24]">{row.name}</Td>
+              <Td className="text-[#6b655c]">{row.system}</Td>
+              <Td className="text-[#6b655c]">
+                {labelOf(HERD_CATEGORY_LABELS, row.category)}
+              </Td>
+              <Td>{formatNumber(row.quantity)}</Td>
+              <Td>{formatNumber(row.daysInLot)}</Td>
+              <Td>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                    row.densityHint > 80
+                      ? "bg-[#e8a54b] text-[#6b3f00]"
+                      : "bg-[#3d4f2f] text-white"
+                  }`}
+                >
+                  {row.densityHint} cab./ciclo
+                </span>
+              </Td>
+            </tr>
+          ))}
+        </Table>
       )}
     </DashCard>
   );

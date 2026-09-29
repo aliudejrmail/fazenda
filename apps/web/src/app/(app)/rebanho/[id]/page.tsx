@@ -161,7 +161,7 @@ export default function LoteDetailPage() {
         ) : null}
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Cabeças" value={formatNumber(lot.quantity)} />
         <Stat label="Dias no lote" value={formatNumber(ind.daysInLot)} />
         <Stat label="Peso atual" value={formatKg(ind.currentWeightKg)} />
