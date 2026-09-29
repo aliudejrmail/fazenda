@@ -1,11 +1,16 @@
 "use client";
 
-import type { InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type {
+  InputHTMLAttributes,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
 const fieldClass =
-  "w-full rounded-md border border-[var(--green)]/20 bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--green)] focus:ring-1 focus:ring-[var(--green)]/30";
+  "w-full rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-3 py-2.5 text-sm text-[var(--ink)] shadow-[var(--shadow-sm)] outline-none transition placeholder:text-[var(--ink-muted)]/70 focus:border-[var(--green-soft)] focus:ring-2 focus:ring-[var(--green-soft)]/20";
 
-const labelClass = "mb-1 block text-sm font-medium text-[var(--ink-muted)]";
+const labelClass =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]";
 
 type FieldProps = {
   label: string;
@@ -24,7 +29,9 @@ export function Input({
     <label className="block">
       <span className={labelClass}>{label}</span>
       <input id={inputId} className={`${fieldClass} ${className}`} {...props} />
-      {error ? <span className="mt-1 block text-xs text-red-700">{error}</span> : null}
+      {error ? (
+        <span className="mt-1.5 block text-xs text-red-700">{error}</span>
+      ) : null}
     </label>
   );
 }
@@ -44,7 +51,9 @@ export function Select({
       <select id={inputId} className={`${fieldClass} ${className}`} {...props}>
         {children}
       </select>
-      {error ? <span className="mt-1 block text-xs text-red-700">{error}</span> : null}
+      {error ? (
+        <span className="mt-1.5 block text-xs text-red-700">{error}</span>
+      ) : null}
     </label>
   );
 }
@@ -62,10 +71,12 @@ export function Textarea({
       <span className={labelClass}>{label}</span>
       <textarea
         id={inputId}
-        className={`${fieldClass} min-h-[80px] ${className}`}
+        className={`${fieldClass} min-h-[88px] resize-y ${className}`}
         {...props}
       />
-      {error ? <span className="mt-1 block text-xs text-red-700">{error}</span> : null}
+      {error ? (
+        <span className="mt-1.5 block text-xs text-red-700">{error}</span>
+      ) : null}
     </label>
   );
 }

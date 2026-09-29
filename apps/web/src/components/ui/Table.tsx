@@ -10,18 +10,21 @@ export function Table({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-[var(--green)]/15 bg-white/60">
+    <div className="ui-surface overflow-x-auto">
       <table className="min-w-full text-left text-sm">
-        <thead className="border-b border-[var(--green)]/10 bg-[var(--green)]/5 text-[var(--ink-muted)]">
+        <thead className="border-b border-[var(--line)] bg-[var(--green)]/[0.04]">
           <tr>
             {headers.map((h) => (
-              <th key={h} className="whitespace-nowrap px-3 py-2 font-medium">
+              <th
+                key={h}
+                className="whitespace-nowrap px-3.5 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]"
+              >
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[var(--green)]/8">{children}</tbody>
+        <tbody className="divide-y divide-[var(--line)]">{children}</tbody>
       </table>
     </div>
   );
@@ -34,7 +37,11 @@ export function Td({
   children: ReactNode;
   className?: string;
 }) {
-  return <td className={`px-3 py-2 align-middle ${className}`}>{children}</td>;
+  return (
+    <td className={`px-3.5 py-2.5 align-middle text-[var(--ink)] ${className}`}>
+      {children}
+    </td>
+  );
 }
 
 export function Tabs({
@@ -47,7 +54,7 @@ export function Tabs({
   onChange: (id: string) => void;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap gap-1 border-b border-[var(--green)]/15">
+    <div className="mb-5 flex flex-wrap gap-1 rounded-[var(--radius)] border border-[var(--line)] bg-[var(--surface-solid)]/80 p-1 shadow-[var(--shadow-sm)]">
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         return (
@@ -55,10 +62,10 @@ export function Tabs({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`px-3 py-2 text-sm font-medium transition ${
+            className={`rounded-lg px-3.5 py-2 text-sm font-medium transition ${
               isActive
-                ? "border-b-2 border-[var(--earth)] text-[var(--green)]"
-                : "text-[var(--ink-muted)] hover:text-[var(--green)]"
+                ? "bg-[var(--green)] text-[var(--cream)] shadow-[var(--shadow-sm)]"
+                : "text-[var(--ink-muted)] hover:bg-[var(--green)]/6 hover:text-[var(--green)]"
             }`}
           >
             {tab.label}

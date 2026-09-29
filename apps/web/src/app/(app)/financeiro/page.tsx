@@ -17,6 +17,7 @@ import {
   FormGrid,
   PageHeader,
   Section,
+  Stat,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
 import { ExpensesTab, RevenuesTab } from "@/components/financeiro/FinanceTabs";
@@ -108,9 +109,13 @@ export default function FinanceiroPage() {
 
       <Section title="Resultado do período">
         <div className="grid gap-4 sm:grid-cols-3">
-          <Metric label="Receitas" value={formatCurrency(result?.totalRevenues ?? 0)} />
-          <Metric label="Despesas" value={formatCurrency(result?.totalExpenses ?? 0)} />
-          <Metric label="Resultado" value={formatCurrency(result?.result ?? 0)} accent />
+          <Stat label="Receitas" value={formatCurrency(result?.totalRevenues ?? 0)} />
+          <Stat label="Despesas" value={formatCurrency(result?.totalExpenses ?? 0)} />
+          <Stat
+            label="Resultado"
+            value={formatCurrency(result?.result ?? 0)}
+            tone="accent"
+          />
         </div>
       </Section>
 
@@ -219,29 +224,6 @@ export default function FinanceiroPage() {
           )}
         </>
       ) : null}
-    </div>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="border-b border-[var(--green)]/15 py-2">
-      <p className="text-xs uppercase text-[var(--ink-muted)]">{label}</p>
-      <p
-        className={`font-[family-name:var(--font-display)] text-2xl ${
-          accent ? "text-[var(--earth)]" : "text-[var(--green)]"
-        }`}
-      >
-        {value}
-      </p>
     </div>
   );
 }

@@ -108,7 +108,7 @@ export default function RetirosPage() {
               <Link
                 key={r.id}
                 href={`/retiros/${r.id}`}
-                className="rounded-xl border border-[#d9d2c5] bg-white/90 p-4 shadow-sm transition hover:border-[var(--green)]/40"
+                className="ui-surface group block p-5 transition hover:-translate-y-0.5 hover:border-[var(--green-soft)]/40 hover:shadow-[var(--shadow-md)]"
               >
                 <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--green)]">
                   {r.name}
@@ -121,8 +121,9 @@ export default function RetirosPage() {
                   Prenhes: {formatNumber(r.matricesPregnant ?? 0)} · Vazias:{" "}
                   {formatNumber(r.matricesEmpty ?? 0)}
                 </p>
-                <span className="mt-3 inline-block text-sm font-medium text-[var(--earth)]">
-                  Ver retiro →
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--earth)] transition group-hover:gap-2">
+                  Abrir retiro
+                  <span aria-hidden>→</span>
                 </span>
               </Link>
             );

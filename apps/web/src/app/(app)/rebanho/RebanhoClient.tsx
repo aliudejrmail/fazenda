@@ -219,7 +219,7 @@ export default function RebanhoClient() {
                   </Link>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="danger"
                     onClick={() => void onDelete(lot.id)}
                   >
                     Excluir

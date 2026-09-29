@@ -10,8 +10,9 @@ import {
   PRODUCTION_SYSTEM_LABELS,
   formatCurrency,
   formatNumber,
+  todayISO,
 } from "@/lib/format";
-import { Alert, EmptyState } from "@/components/ui/LayoutBits";
+import { Alert, EmptyState, PageHeader, Stat } from "@/components/ui/LayoutBits";
 import {
   AlertIcon,
   CowIcon,
@@ -34,10 +35,6 @@ import {
 function monthStartISO() {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export default function DashboardPage() {
@@ -118,38 +115,36 @@ export default function DashboardPage() {
   if (!data) return <EmptyState message="Sem dados para exibir." />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#2f3b24]">
-            Dashboard pecuário
-          </h1>
-          <p className="mt-1 text-sm text-[#6b655c]">
-            Visão operacional da fazenda selecionada
-          </p>
-        </div>
-        <label className="inline-flex items-center gap-2 rounded-lg bg-[#3d4f2f] px-3 py-2 text-sm text-white shadow-sm">
-          <span className="text-xs uppercase tracking-wide opacity-80">Período</span>
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            className="rounded bg-white/10 px-1 py-0.5 text-white outline-none"
-          />
-          <span className="opacity-70">a</span>
-          <input
-            type="date"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            className="rounded bg-white/10 px-1 py-0.5 text-white outline-none"
-          />
-        </label>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Painel pecuário"
+        description="Visão operacional da fazenda selecionada"
+        actions={
+          <label className="inline-flex items-center gap-2 rounded-xl bg-[var(--green)] px-3.5 py-2.5 text-sm text-[var(--cream)] shadow-[var(--shadow-sm)]">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-75">
+              Período
+            </span>
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              className="rounded-md bg-white/10 px-1.5 py-0.5 text-white outline-none"
+            />
+            <span className="opacity-60">a</span>
+            <input
+              type="date"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              className="rounded-md bg-white/10 px-1.5 py-0.5 text-white outline-none"
+            />
+          </label>
+        }
+      />
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-[#d9d2c5] bg-white/80 p-3">
-        <div className="flex min-w-[140px] flex-1 flex-col gap-1 text-[11px] font-medium uppercase tracking-wide text-[#6b655c]">
+      <div className="ui-surface flex flex-wrap gap-3 p-3.5">
+        <div className="flex min-w-[140px] flex-1 flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
           Propriedade
-          <div className="rounded-lg border border-[#d9d2c5] bg-[#f7f3eb] px-2.5 py-2 text-sm font-normal normal-case text-[#2f3b24]">
+          <div className="rounded-lg border border-[var(--line-strong)] bg-[var(--cream-deep)] px-2.5 py-2 text-sm font-normal normal-case text-[var(--ink)]">
             {selectedFarm?.name ?? "—"}
           </div>
         </div>
@@ -262,61 +257,42 @@ export default function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <LotControlTable data={filteredLots} />
         <DashCard title="Financeiro do período">
-          <div className="space-y-3 text-sm">
-            <Row label="Receitas" value={formatCurrency(data.month.totalRevenues)} />
-            <Row label="Despesas" value={formatCurrency(data.month.totalExpenses)} />
-            <Row
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <Stat
+              label="Receitas"
+              value={formatCurrency(data.month.totalRevenues)}
+            />
+            <Stat
+              label="Despesas"
+              value={formatCurrency(data.month.totalExpenses)}
+            />
+            <Stat
               label="Resultado"
               value={formatCurrency(data.month.result)}
-              strong
+              tone="accent"
             />
-            <div className="border-t border-[#e8e2d6] pt-3">
-              <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[#6b655c]">
+            <div className="border-t border-[var(--line)] pt-3 sm:col-span-3 lg:col-span-1">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
                 Pendências rápidas
               </p>
               <ul className="space-y-2">
                 {data.pendencies.slice(0, 4).map((p) => (
                   <li
                     key={p.id}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-[#f7f3eb] px-2.5 py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg bg-[var(--cream-deep)] px-2.5 py-2"
                   >
-                    <span className="truncate text-[#2f3b24]">{p.target}</span>
+                    <span className="truncate text-[var(--ink)]">{p.target}</span>
                     <StatusPill status={p.status} />
                   </li>
                 ))}
                 {data.pendencies.length === 0 ? (
-                  <li className="text-[#6b655c]">Sem pendências</li>
+                  <li className="text-[var(--ink-muted)]">Sem pendências</li>
                 ) : null}
               </ul>
             </div>
           </div>
         </DashCard>
       </div>
-    </div>
-  );
-}
-
-function Row({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-[#6b655c]">{label}</span>
-      <span
-        className={
-          strong
-            ? "font-[family-name:var(--font-display)] text-lg text-[#bc6c25]"
-            : "font-medium text-[#2f3b24]"
-        }
-      >
-        {value}
-      </span>
     </div>
   );
 }

@@ -12,11 +12,10 @@ export function DashCard({
   className?: string;
 }) {
   return (
-    <section
-      className={`rounded-xl border border-[#d9d2c5] bg-white/90 p-4 shadow-[0_1px_2px_rgba(40,30,10,0.04)] ${className}`}
-    >
+    <section className={`ui-surface p-4 sm:p-5 ${className}`}>
       {title ? (
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-[#3d4f2f]">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold tracking-wide text-[var(--green)]">
+          <span className="h-3.5 w-1 rounded-full bg-[var(--earth)]" aria-hidden />
           {title}
         </h2>
       ) : null}
@@ -37,21 +36,19 @@ export function KpiCard({
   tone?: "default" | "alert" | "accent";
 }) {
   const tones = {
-    default: "border-[#d9d2c5]",
-    alert: "border-red-300 bg-red-50/60",
-    accent: "border-[#c4a574]",
+    default: "border-[var(--line)]",
+    alert: "border-red-300/70 bg-red-50/50",
+    accent: "border-[var(--earth)]/35 bg-[var(--earth)]/[0.04]",
   };
   return (
-    <div
-      className={`rounded-xl border bg-white/90 px-3 py-3 shadow-[0_1px_2px_rgba(40,30,10,0.04)] ${tones[tone]}`}
-    >
+    <div className={`ui-surface px-3.5 py-3.5 ${tones[tone]}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-medium uppercase tracking-wide text-[#6b655c]">
-          {label}
-        </p>
-        {icon ? <span className="text-[#5e7d42] opacity-80">{icon}</span> : null}
+        <p className="ui-stat-label">{label}</p>
+        {icon ? (
+          <span className="text-[var(--green-soft)] opacity-85">{icon}</span>
+        ) : null}
       </div>
-      <p className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-[#2f3b24]">
+      <p className="mt-2 font-[family-name:var(--font-display)] text-2xl font-semibold text-[var(--green-dark)]">
         {value}
       </p>
     </div>
@@ -60,14 +57,14 @@ export function KpiCard({
 
 export function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
-    ATRASADA: "bg-[#e8a54b]/text-[#6b3f00]",
-    PENDENTE: "bg-[#c4d4a5] text-[#2f3b24]",
-    CRITICO: "bg-[#e07070] text-white",
+    ATRASADA: "bg-[var(--earth)]/20 text-[var(--earth)]",
+    PENDENTE: "bg-[var(--green-soft)]/20 text-[var(--green-dark)]",
+    CRITICO: "bg-red-600 text-white",
   };
   return (
     <span
       className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-        map[status] ?? "bg-stone-200 text-stone-700"
+        map[status] ?? "bg-[var(--cream-deep)] text-[var(--ink-muted)]"
       }`}
     >
       {status === "ATRASADA"
@@ -93,12 +90,12 @@ export function FilterSelect({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="flex min-w-[120px] flex-1 flex-col gap-1 text-[11px] font-medium uppercase tracking-wide text-[#6b655c]">
+    <label className="flex min-w-[120px] flex-1 flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded-lg border border-[#d9d2c5] bg-white px-2.5 py-2 text-sm font-normal normal-case text-[#2f3b24] outline-none focus:border-[#5e7d42]"
+        className="rounded-lg border border-[var(--line-strong)] bg-[var(--surface-solid)] px-2.5 py-2 text-sm font-normal normal-case text-[var(--ink)] shadow-[var(--shadow-sm)] outline-none focus:border-[var(--green-soft)] focus:ring-2 focus:ring-[var(--green-soft)]/20"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
@@ -128,7 +125,15 @@ export function AlertIcon() {
 
 export function TrendIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5e7d42" strokeWidth="2" aria-hidden>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
       <path d="M3 17l6-6 4 4 7-7" />
       <path d="M14 8h6v6" />
     </svg>

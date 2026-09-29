@@ -3,10 +3,20 @@
 :root {
   --green: #3d4f2f;
   --green-dark: #2f3b24;
+  --green-soft: #5e7d42;
   --cream: #f9f7f2;
+  --cream-deep: #f0ebe1;
   --earth: #bc6c25;
+  --earth-soft: #d4a574;
   --ink: #2f3b24;
   --ink-muted: #6b655c;
+  --line: rgba(61, 79, 47, 0.12);
+  --line-strong: rgba(61, 79, 47, 0.2);
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-solid: #fffcf7;
+  --shadow-sm: 0 1px 2px rgba(47, 59, 36, 0.05);
+  --shadow-md: 0 8px 24px rgba(47, 59, 36, 0.07);
+  --radius: 0.875rem;
   --background: var(--cream);
   --foreground: var(--ink);
 }
@@ -19,10 +29,19 @@
 }
 
 body {
-  background:
-    radial-gradient(ellipse at top left, rgba(188, 108, 37, 0.08), transparent 40%),
-    radial-gradient(ellipse at bottom right, rgba(27, 67, 50, 0.08), transparent 45%),
-    var(--cream);
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(188, 108, 37, 0.1), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(61, 79, 47, 0.09), transparent 45%),
+    linear-gradient(180deg, rgba(255, 252, 247, 0.5), transparent 28%),
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 11px,
+      rgba(61, 79, 47, 0.015) 11px,
+      rgba(61, 79, 47, 0.015) 12px
+    );
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-body), system-ui, sans-serif;
 }
@@ -31,4 +50,67 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(94, 125, 66, 0.25);
+  color: var(--green-dark);
+}
+
+/* Shared surfaces */
+.ui-surface {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(8px);
+}
+
+.ui-surface-solid {
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-stat {
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+  border-radius: calc(var(--radius) - 2px);
+  padding: 0.75rem 0.875rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-stat-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.ui-stat-value {
+  margin-top: 0.35rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: var(--green);
+}
+
+/* Print: clean white */
+@media print {
+  body {
+    background: white;
+  }
+
+  aside,
+  header.ui-topbar,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
 }

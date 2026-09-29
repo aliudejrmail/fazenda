@@ -1,6 +1,7 @@
 "use client";
 
 import type { FormEvent, ReactNode } from "react";
+import { Button } from "@/components/ui/Button";
 
 export function PageHeader({
   title,
@@ -12,16 +13,21 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 border-b border-[var(--green)]/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--green)]">
+    <div className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <div className="mb-2 h-1 w-10 rounded-full bg-[var(--earth)]" />
+        <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--green)] sm:text-[2rem]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--ink-muted)]">
+            {description}
+          </p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+      ) : null}
     </div>
   );
 }
@@ -56,12 +62,14 @@ export function Alert({
   tone?: "error" | "info" | "success";
 }) {
   const tones = {
-    error: "border-red-300 bg-red-50 text-red-800",
-    info: "border-[var(--green)]/20 bg-[var(--green)]/5 text-[var(--green)]",
-    success: "border-emerald-300 bg-emerald-50 text-emerald-900",
+    error: "border-red-300/80 bg-red-50/90 text-red-900",
+    info: "border-[var(--line-strong)] bg-[var(--green)]/5 text-[var(--green)]",
+    success: "border-emerald-300/80 bg-emerald-50/90 text-emerald-950",
   };
   return (
-    <div className={`rounded-md border px-3 py-2 text-sm ${tones[tone]}`}>
+    <div
+      className={`rounded-[var(--radius)] border px-3.5 py-2.5 text-sm shadow-[var(--shadow-sm)] ${tones[tone]}`}
+    >
       {children}
     </div>
   );
@@ -69,15 +77,23 @@ export function Alert({
 
 export function EmptyState({ message }: { message: string }) {
   return (
-    <p className="rounded-md border border-dashed border-[var(--green)]/20 px-4 py-8 text-center text-sm text-[var(--ink-muted)]">
-      {message}
-    </p>
+    <div className="ui-surface px-6 py-12 text-center">
+      <div
+        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--green)]/8 text-[var(--green-soft)]"
+        aria-hidden
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C8 2 5 5.5 5 9.5c0 5.2 5.2 10.4 6.4 11.5.3.3.8.3 1.1 0C13.8 19.9 19 14.7 19 9.5 19 5.5 16 2 12 2zm0 11.5c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z" />
+        </svg>
+      </div>
+      <p className="text-sm text-[var(--ink-muted)]">{message}</p>
+    </div>
   );
 }
 
 export function FormGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
   );
 }
 
@@ -100,21 +116,43 @@ export function FormCard({
         e.preventDefault();
         void onSubmit(e);
       }}
-      className="mb-6 rounded-lg border border-[var(--green)]/15 bg-white/70 p-4"
+      className="ui-surface mb-6 p-5"
     >
-      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--earth)]">
-        {title}
-      </h3>
-      <div className="space-y-3">{children}</div>
-      <div className="mt-4">
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-md bg-[var(--green)] px-4 py-2 text-sm font-medium text-[var(--cream)] hover:bg-[var(--green-dark)] disabled:opacity-50"
-        >
+      <div className="mb-4 flex items-center gap-2">
+        <span className="h-4 w-1 rounded-full bg-[var(--earth)]" aria-hidden />
+        <h3 className="text-sm font-semibold tracking-wide text-[var(--green)]">
+          {title}
+        </h3>
+      </div>
+      <div className="space-y-3.5">{children}</div>
+      <div className="mt-5">
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Salvando..." : submitLabel}
-        </button>
+        </Button>
       </div>
     </form>
+  );
+}
+
+export function Stat({
+  label,
+  value,
+  tone = "default",
+}: {
+  label: string;
+  value: string;
+  tone?: "default" | "accent";
+}) {
+  return (
+    <div className="ui-stat">
+      <p className="ui-stat-label">{label}</p>
+      <p
+        className={`ui-stat-value ${
+          tone === "accent" ? "!text-[var(--earth)]" : ""
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
