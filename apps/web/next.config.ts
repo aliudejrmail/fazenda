@@ -2,8 +2,25 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
-/** Destino do proxy /api/* (server-side). Em produção, URL interna/pública da API. */
-const apiTarget = (process.env.API_PROXY_TARGET ?? "http://localhost:3001").replace(/\/$/, "");
+/**
+ * Destino do proxy /api/* (server-side). Em produção, URL pública da API.
+ * Tolera valor vazio, barra final e ausência de protocolo (assume https).
+ */
+function resolveApiTarget(): string {
+  const raw = process.env.API_PROXY_TARGET?.trim();
+  if (!raw) {
+    if (isProd && !process.env.NEXT_PUBLIC_API_URL?.trim()) {
+      console.warn(
+        "[next.config] API_PROXY_TARGET não definido: /api/* será proxied para http://localhost:3001 (login não funcionará em produção).",
+      );
+    }
+    return "http://localhost:3001";
+  }
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withProtocol.replace(/\/+$/, "");
+}
+
+const apiTarget = resolveApiTarget();
 
 /** Origem extra permitida no connect-src caso NEXT_PUBLIC_API_URL aponte para outro domínio. */
 function externalApiOrigin(): string | null {

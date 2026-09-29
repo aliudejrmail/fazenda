@@ -6,7 +6,8 @@ import type { AuthResponse, User } from "./types";
  * `NEXT_PUBLIC_API_URL` permite apontar direto para outra origem (exige
  * CORS + COOKIE_SAMESITE=none no backend).
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
+// `||` (e não `??`): no Render a variável pode existir com valor vazio ("").
+const API_URL = (process.env.NEXT_PUBLIC_API_URL?.trim() || "/api/v1").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;

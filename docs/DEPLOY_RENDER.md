@@ -60,7 +60,7 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 | Variável | Valor |
 |----------|-------|
 | `API_PROXY_TARGET` | `https://fazenda-api.onrender.com` |
-| `NEXT_PUBLIC_API_URL` | *(deixe vazio)* |
+| `NEXT_PUBLIC_API_URL` | *(remova a variável; se existir vazia, também funciona)* |
 
 A sessão usa cookies `httpOnly`. A web chama `/api/v1/*` na **própria origem** e o Next
 faz o proxy para `API_PROXY_TARGET`, mantendo os cookies como first-party (sem CORS/SameSite=None).
