@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertVehicleInFarm } from '../common/utils/farm-scope';
 import {
   CreateFuelDto,
   CreateMaintenanceDto,
@@ -51,6 +52,7 @@ export class FleetService {
   async createFuel(farmId: string, dto: CreateFuelDto) {
     const totalCost = new Prisma.Decimal(dto.liters).mul(dto.unitPrice);
     return this.prisma.$transaction(async (tx) => {
+      await assertVehicleInFarm(tx, farmId, dto.vehicleId);
       const record = await tx.fuelRecord.create({
         data: {
           farmId,
@@ -89,6 +91,7 @@ export class FleetService {
 
   async createMaintenance(farmId: string, dto: CreateMaintenanceDto) {
     return this.prisma.$transaction(async (tx) => {
+      await assertVehicleInFarm(tx, farmId, dto.vehicleId);
       const record = await tx.maintenanceRecord.create({
         data: {
           farmId,

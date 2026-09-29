@@ -2,6 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  assertLotInFarm,
+  assertRetiroInFarm,
+} from '../common/utils/farm-scope';
+import {
   CreateBirthDto,
   CreateCullDto,
   CreateHerdLotDto,
@@ -30,6 +34,7 @@ export class HerdService {
   }
 
   async createLot(farmId: string, dto: CreateHerdLotDto) {
+    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId);
     return this.prisma.herdLot.create({
       data: {
         farmId,
@@ -52,6 +57,7 @@ export class HerdService {
 
   async updateLot(farmId: string, id: string, dto: UpdateHerdLotDto) {
     await this.getLot(farmId, id);
+    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId);
     const { entryDate, ...rest } = dto;
     return this.prisma.herdLot.update({
       where: { id },
@@ -206,13 +212,9 @@ export class HerdService {
 
   async createBirth(farmId: string, dto: CreateBirthDto) {
     return this.prisma.$transaction(async (tx) => {
-      let retiroId = dto.retiroId || null;
-      if (!retiroId && dto.herdLotId) {
-        const lot = await tx.herdLot.findFirst({
-          where: { id: dto.herdLotId, farmId },
-        });
-        retiroId = lot?.retiroId ?? null;
-      }
+      await assertRetiroInFarm(tx, farmId, dto.retiroId);
+      const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
+      const retiroId = dto.retiroId || lot?.retiroId || null;
 
       const record = await tx.birthRecord.create({
         data: {
@@ -253,11 +255,10 @@ export class HerdService {
 
   async createMortality(farmId: string, dto: CreateMortalityDto) {
     return this.prisma.$transaction(async (tx) => {
+      await assertRetiroInFarm(tx, farmId, dto.retiroId);
       let retiroId = dto.retiroId || null;
       if (dto.herdLotId) {
-        const lot = await tx.herdLot.findFirst({
-          where: { id: dto.herdLotId, farmId, deletedAt: null },
-        });
+        const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
         if (!lot) throw new NotFoundException('Lote não encontrado');
         if (lot.quantity < dto.quantity) {
           throw new BadRequestException('Quantidade maior que o lote');
@@ -333,6 +334,7 @@ export class HerdService {
     const totalCost = new Prisma.Decimal(dto.unitCost).mul(dto.quantity);
     return this.prisma.$transaction(async (tx) => {
       if (dto.herdLotId) {
+        await assertLotInFarm(tx, farmId, dto.herdLotId);
         await tx.herdLot.update({
           where: { id: dto.herdLotId },
           data: { quantity: { increment: dto.quantity } },
@@ -391,6 +393,7 @@ export class HerdService {
       }
 
       if (dto.toLotId) {
+        await assertLotInFarm(tx, farmId, dto.toLotId);
         await tx.herdLot.update({
           where: { id: dto.toLotId },
           data: {
