@@ -1,23 +1,56 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icons";
+import { findNavContext } from "@/components/shell/nav-config";
+
+function TitleWithHighlight({ title, highlight }: { title: string; highlight?: string }) {
+  const at = highlight ? title.indexOf(highlight) : -1;
+  if (!highlight || at < 0) return <>{title}</>;
+  return (
+    <>
+      {title.slice(0, at)}
+      <span className="text-[var(--earth-strong)]">{highlight}</span>
+      {title.slice(at + highlight.length)}
+    </>
+  );
+}
 
 export function PageHeader({
   title,
   description,
   actions,
+  eyebrow,
+  highlight,
 }: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  /** Texto acima do título. Padrão: grupo do menu da rota atual (Operação, Rebanho, Gestão). */
+  eyebrow?: string;
+  /** Trecho do título destacado na cor terrosa (ex.: "pecuário"). */
+  highlight?: string;
 }) {
+  const pathname = usePathname();
+  const context = findNavContext(pathname);
+  const eyebrowText = eyebrow ?? context?.group.label;
+
   return (
     <div className="mb-7 flex flex-col gap-4 border-b border-[var(--line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <div className="mb-2 h-1 w-10 rounded-full bg-[var(--earth)]" />
+        <div className="mb-2 flex items-center gap-2.5">
+          <span className="h-1 w-10 shrink-0 rounded-full bg-[var(--earth)]" aria-hidden />
+          {eyebrowText ? (
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--earth-strong)]">
+              {context ? <Icon name={context.item.icon} size={13} /> : null}
+              {eyebrowText}
+            </p>
+          ) : null}
+        </div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl text-[var(--green)] sm:text-[2rem]">
-          {title}
+          <TitleWithHighlight title={title} highlight={highlight} />
         </h1>
         {description ? (
           <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[var(--ink-muted)]">

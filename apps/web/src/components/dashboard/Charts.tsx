@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import type { DashboardSummary } from "@/lib/types";
 import { HERD_CATEGORY_LABELS, formatNumber, labelOf } from "@/lib/format";
-import { DashCard, StatusPill } from "./DashBits";
+import { DashCard } from "./DashBits";
 
 const CHART = {
   cria: "#5e7d42",
@@ -192,43 +192,6 @@ export function GmdBars({ data }: { data: DashboardSummary["gmdByLot"] }) {
               <Bar dataKey="gmd" name="GMD (kg/dia)" fill={CHART.gmd} radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-      )}
-    </DashCard>
-  );
-}
-
-export function PendenciesTable({
-  data,
-}: {
-  data: DashboardSummary["pendencies"];
-}) {
-  return (
-    <DashCard title="Pendências do dia">
-      {data.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[#6b655c]">Nenhuma pendência</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#e8e2d6] text-[11px] uppercase tracking-wide text-[#6b655c]">
-                <th className="pb-2 pr-2 font-medium">Tipo</th>
-                <th className="pb-2 pr-2 font-medium">Alvo</th>
-                <th className="pb-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((p) => (
-                <tr key={p.id} className="border-b border-[#f0ebe3]">
-                  <td className="py-2 pr-2 text-[#2f3b24]">{p.type}</td>
-                  <td className="py-2 pr-2 text-[#6b655c]">{p.target}</td>
-                  <td className="py-2">
-                    <StatusPill status={p.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
     </DashCard>

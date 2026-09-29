@@ -13,24 +13,30 @@ import {
   todayISO,
 } from "@/lib/format";
 import { Alert, EmptyState, PageHeader, Stat } from "@/components/ui/LayoutBits";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import {
   AlertIcon,
   CowIcon,
   DashCard,
   FilterSelect,
   KpiCard,
-  StatusPill,
-  TrendIcon,
 } from "@/components/dashboard/DashBits";
 import {
   CategoryBars,
   GmdBars,
   HealthBars,
   LotControlTable,
-  PendenciesTable,
   ReproductiveFunnel,
   WeightLine,
 } from "@/components/dashboard/Charts";
+import { AgendaDoDia } from "@/components/dashboard/AgendaDoDia";
+import { HeroStats } from "@/components/dashboard/HeroStats";
+import { ModuleShortcuts } from "@/components/dashboard/ModuleShortcuts";
+
+/** "2026-09-28" -> "28/09/2026" (sem conversão de fuso, evita deslocar o dia). */
+function formatBr(iso: string) {
+  return iso.split("-").reverse().join("/");
+}
 
 function monthStartISO() {
   const d = new Date();
@@ -114,10 +120,23 @@ export default function DashboardPage() {
   if (error && !data) return <Alert>{error}</Alert>;
   if (!data) return <EmptyState message="Sem dados para exibir." />;
 
+  const hasHerdFilter = lotId !== "ALL" || category !== "ALL" || system !== "ALL";
+  const totalHeads = hasHerdFilter ? filteredHeads : data.totalHeads;
+
+  // Números vivos exibidos nos cards de atalho (chave = href do módulo).
+  const shortcutMetrics: Record<string, string> = {
+    "/rebanho": `${formatNumber(data.lots.length)} lotes`,
+    "/rebanho/reprodutivo": `${formatNumber(data.pregnancyRate)}% de partos`,
+    "/vacinas": `${formatNumber(data.upcomingVaccines.length)} a vencer`,
+    "/financeiro": formatCurrency(data.month.result),
+    "/almoxarifado": `${formatNumber(data.lowStockCount)} em alerta`,
+  };
+
   return (
     <div className="space-y-5">
       <PageHeader
         title="Painel pecuário"
+        highlight="pecuário"
         description="Visão operacional da fazenda selecionada"
         actions={
           <label className="inline-flex items-center gap-2 rounded-xl bg-[var(--green)] px-3.5 py-2.5 text-sm text-[var(--cream)] shadow-[var(--shadow-sm)]">
@@ -142,6 +161,21 @@ export default function DashboardPage() {
       />
 
       <div className="ui-surface flex flex-wrap gap-3 p-3.5">
+        <div className="flex w-full flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
+          Ciclo de produção
+          <SegmentedControl
+            label="Ciclo de produção"
+            value={system}
+            onChange={setSystem}
+            options={[
+              { value: "ALL", label: "Todos" },
+              ...Object.entries(PRODUCTION_SYSTEM_LABELS).map(([value, label]) => ({
+                value,
+                label,
+              })),
+            ]}
+          />
+        </div>
         <div className="flex min-w-[140px] flex-1 flex-col gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
           Propriedade
           <div className="rounded-lg border border-[var(--line-strong)] bg-[var(--cream-deep)] px-2.5 py-2 text-sm font-normal normal-case text-[var(--ink)]">
@@ -170,18 +204,6 @@ export default function DashboardPage() {
           ]}
         />
         <FilterSelect
-          label="Sistema"
-          value={system}
-          onChange={setSystem}
-          options={[
-            { value: "ALL", label: "Todos" },
-            ...Object.entries(PRODUCTION_SYSTEM_LABELS).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]}
-        />
-        <FilterSelect
           label="Status"
           value={status}
           onChange={setStatus}
@@ -197,22 +219,38 @@ export default function DashboardPage() {
 
       {error ? <Alert>{error}</Alert> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-8">
-        <KpiCard
-          label="Total de animais"
-          value={formatNumber(lotId === "ALL" && category === "ALL" && system === "ALL" ? data.totalHeads : filteredHeads)}
-          icon={<CowIcon />}
-        />
-        <KpiCard
-          label="Animais jovens"
-          value={formatNumber(data.youngHeads)}
-          icon={<CowIcon />}
-        />
-        <KpiCard
-          label="Taxa de partos"
-          value={`${formatNumber(data.pregnancyRate)}%`}
-          icon={<CowIcon />}
-        />
+      <HeroStats
+        caption={`Resumo do período · ${formatBr(from)} a ${formatBr(to)}`}
+        items={[
+          {
+            label: "Total de animais",
+            value: formatNumber(totalHeads),
+            hint: `${formatNumber(data.youngHeads)} jovens`,
+            icon: "lots",
+          },
+          {
+            label: "Taxa de partos",
+            value: `${formatNumber(data.pregnancyRate)}%`,
+            hint: `${formatNumber(data.month.matricesParidas)} partos no período`,
+            icon: "reproductive",
+          },
+          {
+            label: "GMD médio",
+            value: formatNumber(data.avgGmd),
+            hint: "kg por animal/dia",
+            icon: "scale",
+            highlight: true,
+          },
+          {
+            label: "Resultado",
+            value: formatCurrency(data.month.result),
+            hint: `Receitas ${formatCurrency(data.month.totalRevenues)}`,
+            icon: "finance",
+          },
+        ]}
+      />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <KpiCard
           label="Partos no período"
           value={formatNumber(data.month.matricesParidas)}
@@ -229,10 +267,9 @@ export default function DashboardPage() {
           icon={<CowIcon />}
         />
         <KpiCard
-          label="GMD médio"
-          value={`${formatNumber(data.avgGmd)} kg/d`}
-          icon={<TrendIcon />}
-          tone="accent"
+          label="Estoque em alerta"
+          value={formatNumber(data.lowStockCount)}
+          icon={<AlertIcon />}
         />
         <KpiCard
           label="Alertas críticos"
@@ -243,15 +280,21 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <ModuleShortcuts metrics={shortcutMetrics} />
+        </div>
+        <AgendaDoDia data={data.pendencies} />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-3">
         <CategoryBars data={filteredStacked} />
         <ReproductiveFunnel data={data.reproductivePipeline} />
         <HealthBars data={data.healthOccurrences} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         <WeightLine data={data.weightEvolution} />
         <GmdBars data={data.gmdByLot} />
-        <PendenciesTable data={data.pendencies} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -271,25 +314,6 @@ export default function DashboardPage() {
               value={formatCurrency(data.month.result)}
               tone="accent"
             />
-            <div className="border-t border-[var(--line)] pt-3 sm:col-span-3 lg:col-span-1">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--ink-muted)]">
-                Pendências rápidas
-              </p>
-              <ul className="space-y-2">
-                {data.pendencies.slice(0, 4).map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex items-center justify-between gap-2 rounded-lg bg-[var(--cream-deep)] px-2.5 py-2"
-                  >
-                    <span className="truncate text-[var(--ink)]">{p.target}</span>
-                    <StatusPill status={p.status} />
-                  </li>
-                ))}
-                {data.pendencies.length === 0 ? (
-                  <li className="text-[var(--ink-muted)]">Sem pendências</li>
-                ) : null}
-              </ul>
-            </div>
           </div>
         </DashCard>
       </div>

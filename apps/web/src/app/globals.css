@@ -8,6 +8,8 @@
   --cream-deep: #f0ebe1;
   --earth: #bc6c25;
   --earth-soft: #d4a574;
+  /* Variante mais escura do --earth para botões com texto branco (contraste AA ~5:1) */
+  --earth-strong: #9f5a1e;
   --ink: #2f3b24;
   --ink-muted: #6b655c;
   --line: rgba(61, 79, 47, 0.12);

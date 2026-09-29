@@ -90,8 +90,12 @@ export type LotDetail = {
   weighings: LotWeighingItem[];
 };
 
+export type PendencyKind = "VACCINE" | "STOCK" | "WEIGHING" | "CULL";
+
 export type DashboardPendency = {
   id: string;
+  /** Código estável (ícone/destino); `type` é apenas o rótulo exibido. */
+  kind: PendencyKind;
   type: string;
   target: string;
   dueDate: string;
