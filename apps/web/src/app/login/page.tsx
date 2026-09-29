@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/LayoutBits";
 import { Button } from "@/components/ui/Button";
+import { Logo } from "@/components/ui/Logo";
 
 export default function LoginPage() {
   const { login, hasToken, loading } = useAuth();
@@ -57,11 +58,7 @@ export default function LoginPage() {
 
         <div className="relative">
           <div className="inline-flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--earth)] shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 3c-1.2 0-2.2.7-2.7 1.7-.4-.2-.8-.3-1.3-.3-1.7 0-3 1.4-3 3.1 0 .5.1 1 .4 1.4C4.2 9.5 3.5 10.7 3.5 12c0 2.3 1.6 4.2 3.7 4.7.3 1.7 1.8 3 3.6 3h2.4c1.8 0 3.3-1.3 3.6-3 2.1-.5 3.7-2.4 3.7-4.7 0-1.3-.7-2.5-1.9-3.1.3-.4.4-.9.4-1.4 0-1.7-1.3-3.1-3-3.1-.5 0-.9.1-1.3.3C14.2 3.7 13.2 3 12 3z" />
-              </svg>
-            </span>
+            <Logo size={56} priority className="rounded-2xl" />
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
               Campo · Rebanho · Resultado
             </p>
@@ -102,13 +99,16 @@ export default function LoginPage() {
 
       <section className="relative flex items-center justify-center px-5 py-[max(2.5rem,env(safe-area-inset-top))] sm:px-8">
         <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden">
-            <p className="font-[family-name:var(--font-display)] text-4xl text-[var(--green)]">
-              Fazenda
-            </p>
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">
-              Gestão de rebanho e operação
-            </p>
+          <div className="mb-8 flex items-center gap-3.5 lg:hidden">
+            <Logo size={56} priority className="rounded-2xl border border-[var(--line-strong)]" />
+            <div className="min-w-0">
+              <p className="font-[family-name:var(--font-display)] text-4xl leading-none text-[var(--green)]">
+                Fazenda
+              </p>
+              <p className="mt-1.5 text-sm text-[var(--ink-muted)]">
+                Gestão de rebanho e operação
+              </p>
+            </div>
           </div>
 
           <div className="ui-surface-solid p-6 sm:p-8">
