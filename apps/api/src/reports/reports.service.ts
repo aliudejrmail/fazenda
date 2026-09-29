@@ -34,7 +34,7 @@ export class ReportsService {
         orderBy: { name: 'asc' },
       }),
       this.prisma.retiro.findMany({
-        where: { farmId, deletedAt: null },
+        where: { farmId, deletedAt: null, active: true },
         orderBy: { name: 'asc' },
       }),
       this.prisma.birthRecord.findMany({

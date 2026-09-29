@@ -53,7 +53,7 @@ export default function ReprodutivoPage() {
         api<ReplacementRecord[]>("/herd/replacements"),
       ]);
       setLots(l);
-      setRetiros(retirosData);
+      setRetiros(retirosData.filter((r) => r.active !== false));
       setDiagnoses(d);
       setBirths(b);
       setMortalities(m);

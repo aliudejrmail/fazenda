@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { RetiroSummary } from "@/lib/types";
 import {
@@ -24,8 +24,14 @@ import {
 } from "@/components/ui/LayoutBits";
 import { Table, Td } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import {
+  RetiroFields,
+  readRetiroForm,
+} from "@/components/retiros/RetiroFields";
+import { RetiroActions } from "@/components/retiros/RetiroActions";
 
 export default function RetiroDetailPage() {
+  const router = useRouter();
   const params = useParams();
   const id = String(params.id);
   const [data, setData] = useState<RetiroSummary | null>(null);
@@ -108,16 +114,11 @@ export default function RetiroDetailPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const body = readRetiroForm(new FormData(e.currentTarget));
     try {
       await api(`/retiros/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          matricesPregnant: Number(fd.get("matricesPregnant") || 0),
-          matricesEmpty: Number(fd.get("matricesEmpty") || 0),
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       setPanel("none");
       await load();
@@ -135,6 +136,7 @@ export default function RetiroDetailPage() {
   if (!data) return <EmptyState message="Retiro não encontrado." />;
 
   const s = data.summary;
+  const isActive = data.retiro.active !== false;
 
   return (
     <div>
@@ -156,6 +158,16 @@ export default function RetiroDetailPage() {
         </div>
       ) : null}
 
+      {!isActive ? (
+        <div className="mb-4">
+          <Alert tone="info">
+            Retiro inativo: o histórico é mantido, mas ele não recebe novos
+            lançamentos e fica fora do painel e dos relatórios. Use
+            &quot;Reativar&quot; para voltar a usá-lo.
+          </Alert>
+        </div>
+      ) : null}
+
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Total de animais" value={formatNumber(s.totalHeads)} />
         <Stat label="Matrizes" value={formatNumber(s.matrices)} />
@@ -167,15 +179,28 @@ export default function RetiroDetailPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setPanel("birth")}>
+        <Button
+          type="button"
+          disabled={!isActive}
+          onClick={() => setPanel("birth")}
+        >
           Adicionar nascimento
         </Button>
-        <Button type="button" variant="secondary" onClick={() => setPanel("mortality")}>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={!isActive}
+          onClick={() => setPanel("mortality")}
+        >
           Registrar mortalidade
         </Button>
-        <Button type="button" variant="secondary" onClick={() => setPanel("edit")}>
-          Editar rebanho
-        </Button>
+        <RetiroActions
+          retiro={data.retiro}
+          onEdit={() => setPanel("edit")}
+          onToggled={load}
+          onDeleted={() => router.replace("/retiros")}
+          onError={setError}
+        />
         <Link href={`/rebanho?retiroId=${id}`}>
           <Button type="button" variant="ghost">
             Ver lotes
@@ -236,24 +261,7 @@ export default function RetiroDetailPage() {
           submitting={submitting}
           submitLabel="Salvar"
         >
-          <FormGrid>
-            <Input label="Nome" name="name" required defaultValue={data.retiro.name} />
-            <Input
-              label="Matrizes prenhes"
-              name="matricesPregnant"
-              type="number"
-              min={0}
-              defaultValue={data.retiro.matricesPregnant ?? 0}
-            />
-            <Input
-              label="Matrizes vazias"
-              name="matricesEmpty"
-              type="number"
-              min={0}
-              defaultValue={data.retiro.matricesEmpty ?? 0}
-            />
-            <Textarea label="Observações" name="notes" defaultValue={data.retiro.notes ?? ""} />
-          </FormGrid>
+          <RetiroFields retiro={data.retiro} />
           <Button type="button" variant="ghost" onClick={() => setPanel("none")}>
             Cancelar
           </Button>

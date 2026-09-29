@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -34,6 +35,11 @@ export class UpdateRetiroDto {
   @IsString()
   @MinLength(2)
   name?: string;
+
+  /** false = inativar; true = reativar */
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
 
   @IsOptional()
   @IsString()

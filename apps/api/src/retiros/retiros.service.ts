@@ -1,16 +1,55 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRetiroDto, UpdateRetiroDto } from './dto/retiro.dto';
+
+/** Vínculos que impedem a exclusão (só é possível inativar). */
+const LINK_COUNT = {
+  select: {
+    herdLots: { where: { deletedAt: null } },
+    birthRecords: true,
+    mortalityRecords: true,
+    pregnancyDiagnoses: true,
+  },
+} satisfies Prisma.RetiroCountOutputTypeDefaultArgs;
+
+type LinkCount = {
+  herdLots: number;
+  birthRecords: number;
+  mortalityRecords: number;
+  pregnancyDiagnoses: number;
+};
+
+const LINK_LABELS: Array<[keyof LinkCount, string]> = [
+  ['herdLots', 'lote(s)'],
+  ['birthRecords', 'nascimento(s)'],
+  ['mortalityRecords', 'mortalidade(s)'],
+  ['pregnancyDiagnoses', 'diagnóstico(s) de prenhez'],
+];
+
+function totalLinks(count: LinkCount) {
+  return LINK_LABELS.reduce((sum, [key]) => sum + count[key], 0);
+}
+
+function describeLinks(count: LinkCount) {
+  return LINK_LABELS.filter(([key]) => count[key] > 0)
+    .map(([key, label]) => `${count[key]} ${label}`)
+    .join(', ');
+}
 
 @Injectable()
 export class RetirosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(farmId: string) {
-    return this.prisma.retiro.findMany({
+  async list(farmId: string) {
+    const retiros = await this.prisma.retiro.findMany({
       where: { farmId, deletedAt: null },
       include: {
-        _count: { select: { herdLots: true } },
+        _count: LINK_COUNT,
         herdLots: {
           where: { deletedAt: null, status: 'ATIVO' },
           select: { quantity: true, category: true },
@@ -18,24 +57,33 @@ export class RetirosService {
       },
       orderBy: { name: 'asc' },
     });
+    return retiros.map((r) => ({
+      ...r,
+      canDelete: totalLinks(r._count) === 0,
+    }));
   }
 
   async create(farmId: string, dto: CreateRetiroDto) {
-    return this.prisma.retiro.create({
-      data: {
-        farmId,
-        name: dto.name,
-        notes: dto.notes,
-        matricesPregnant: dto.matricesPregnant ?? 0,
-        matricesEmpty: dto.matricesEmpty ?? 0,
-      },
-    });
+    try {
+      return await this.prisma.retiro.create({
+        data: {
+          farmId,
+          name: dto.name,
+          notes: dto.notes,
+          matricesPregnant: dto.matricesPregnant ?? 0,
+          matricesEmpty: dto.matricesEmpty ?? 0,
+        },
+      });
+    } catch (err) {
+      this.rethrowDuplicate(err);
+    }
   }
 
   async findOne(farmId: string, id: string) {
     const retiro = await this.prisma.retiro.findFirst({
       where: { id, farmId, deletedAt: null },
       include: {
+        _count: LINK_COUNT,
         herdLots: {
           where: { deletedAt: null },
           orderBy: { name: 'asc' },
@@ -48,22 +96,29 @@ export class RetirosService {
 
   async update(farmId: string, id: string, dto: UpdateRetiroDto) {
     await this.findOne(farmId, id);
-    return this.prisma.retiro.update({
-      where: { id },
-      data: dto,
-    });
+    try {
+      return await this.prisma.retiro.update({
+        where: { id },
+        data: dto,
+      });
+    } catch (err) {
+      this.rethrowDuplicate(err);
+    }
   }
 
+  /**
+   * Exclui apenas retiros sem lotes nem movimentações vinculadas.
+   * Com histórico, o caminho é inativar (PATCH `active: false`).
+   */
   async remove(farmId: string, id: string) {
-    await this.findOne(farmId, id);
-    await this.prisma.herdLot.updateMany({
-      where: { farmId, retiroId: id },
-      data: { retiroId: null },
-    });
-    return this.prisma.retiro.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
+    const retiro = await this.findOne(farmId, id);
+    if (totalLinks(retiro._count) > 0) {
+      throw new ConflictException(
+        `Não é possível excluir: o retiro possui ${describeLinks(retiro._count)}. Inative-o para preservar o histórico.`,
+      );
+    }
+    await this.prisma.retiro.delete({ where: { id } });
+    return { deleted: true };
   }
 
   async summary(farmId: string, id: string) {
@@ -115,6 +170,8 @@ export class RetirosService {
         id: retiro.id,
         name: retiro.name,
         notes: retiro.notes,
+        active: retiro.active,
+        canDelete: totalLinks(retiro._count) === 0,
         matricesPregnant: retiro.matricesPregnant,
         matricesEmpty: retiro.matricesEmpty,
       },
@@ -137,5 +194,16 @@ export class RetirosService {
         .sort((a, b) => b.date.getTime() - a.date.getTime())
         .slice(0, 10),
     };
+  }
+
+  /** Traduz violação de `@@unique([farmId, name])` em erro 409 legível. */
+  private rethrowDuplicate(err: unknown): never {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      throw new ConflictException('Já existe um retiro com este nome');
+    }
+    throw err;
   }
 }

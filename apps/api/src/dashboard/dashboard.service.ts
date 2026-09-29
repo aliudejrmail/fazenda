@@ -87,7 +87,7 @@ export class DashboardService {
         where: { farmId, date: { gte: startOfMonth, lte: endOfMonth } },
       }),
       this.prisma.retiro.findMany({
-        where: { farmId, deletedAt: null },
+        where: { farmId, deletedAt: null, active: true },
       }),
     ]);
 

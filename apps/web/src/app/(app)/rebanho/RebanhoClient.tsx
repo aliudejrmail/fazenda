@@ -145,7 +145,9 @@ export default function RebanhoClient() {
           </Select>
           <Select label="Retiro" name="retiroId" defaultValue={filterRetiro || ""}>
             <option value="">Sem retiro</option>
-            {retiros.map((r) => (
+            {retiros
+              .filter((r) => r.active !== false)
+              .map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
               </option>

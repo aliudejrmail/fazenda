@@ -24,6 +24,10 @@ export type Retiro = {
   notes?: string | null;
   matricesPregnant?: number;
   matricesEmpty?: number;
+  /** Inativo: mantém o histórico, mas fica fora dos seletores, painel e relatórios. */
+  active?: boolean;
+  /** Sem lotes/movimentações vinculados: pode ser excluído. */
+  canDelete?: boolean;
   herdLots?: HerdLot[];
   _count?: { herdLots: number };
 };

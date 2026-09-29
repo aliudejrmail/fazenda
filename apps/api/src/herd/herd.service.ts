@@ -34,7 +34,9 @@ export class HerdService {
   }
 
   async createLot(farmId: string, dto: CreateHerdLotDto) {
-    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId);
+    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId, {
+      requireActive: true,
+    });
     return this.prisma.herdLot.create({
       data: {
         farmId,
@@ -56,8 +58,11 @@ export class HerdService {
   }
 
   async updateLot(farmId: string, id: string, dto: UpdateHerdLotDto) {
-    await this.getLot(farmId, id);
-    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId);
+    const current = await this.getLot(farmId, id);
+    // só exige retiro ativo ao mover o lote para outro retiro
+    await assertRetiroInFarm(this.prisma, farmId, dto.retiroId, {
+      requireActive: dto.retiroId !== current.retiroId,
+    });
     const { entryDate, ...rest } = dto;
     return this.prisma.herdLot.update({
       where: { id },
@@ -212,7 +217,9 @@ export class HerdService {
 
   async createBirth(farmId: string, dto: CreateBirthDto) {
     return this.prisma.$transaction(async (tx) => {
-      await assertRetiroInFarm(tx, farmId, dto.retiroId);
+      await assertRetiroInFarm(tx, farmId, dto.retiroId, {
+        requireActive: true,
+      });
       const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
       const retiroId = dto.retiroId || lot?.retiroId || null;
 
@@ -255,7 +262,9 @@ export class HerdService {
 
   async createMortality(farmId: string, dto: CreateMortalityDto) {
     return this.prisma.$transaction(async (tx) => {
-      await assertRetiroInFarm(tx, farmId, dto.retiroId);
+      await assertRetiroInFarm(tx, farmId, dto.retiroId, {
+        requireActive: true,
+      });
       let retiroId = dto.retiroId || null;
       if (dto.herdLotId) {
         const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
@@ -484,12 +493,10 @@ export class HerdService {
         retiroId = lot.retiroId;
       }
 
-      if (retiroId) {
-        const retiro = await tx.retiro.findFirst({
-          where: { id: retiroId, farmId, deletedAt: null },
-        });
-        if (!retiro) throw new NotFoundException('Retiro não encontrado');
-      }
+      // retiro inativo só é barrado quando informado explicitamente
+      await assertRetiroInFarm(tx, farmId, retiroId, {
+        requireActive: Boolean(dto.retiroId),
+      });
 
       if (dto.herdLotId) {
         const lot = await tx.herdLot.findFirst({
