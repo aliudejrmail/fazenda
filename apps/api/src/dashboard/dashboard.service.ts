@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+export type PendencyKind = 'VACCINE' | 'STOCK' | 'WEIGHING' | 'CULL';
+
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -354,6 +356,9 @@ export class DashboardService {
   ) {
     const items: Array<{
       id: string;
+      /** Código estável para o cliente decidir ícone/destino (não depende do texto de `type`). */
+      kind: PendencyKind;
+      /** Rótulo legível (pode mudar sem quebrar clientes). */
       type: string;
       target: string;
       dueDate: string;
@@ -371,6 +376,7 @@ export class DashboardService {
       else if (days <= 3) status = 'CRITICO';
       items.push({
         id: v.id,
+        kind: 'VACCINE',
         type: 'Vacina',
         target: `${v.vaccine?.name ?? 'Vacina'}${v.herdLot ? ` — ${v.herdLot.name}` : ''}`,
         dueDate: v.nextDueDate.toISOString(),
@@ -381,6 +387,7 @@ export class DashboardService {
     for (const item of lowStock.slice(0, 8)) {
       items.push({
         id: `stock-${item.id}`,
+        kind: 'STOCK',
         type:
           item.category === 'RACAO' || item.category === 'INSUMO'
             ? 'Estoque ração'
@@ -403,6 +410,7 @@ export class DashboardService {
       due.setDate(due.getDate() + weighingDaysLimit);
       items.push({
         id: `weigh-${lot.id}`,
+        kind: 'WEIGHING',
         type: 'Pesagem',
         target: `${lot.name} — há ${Math.floor(days)} dias`,
         dueDate: due.toISOString(),
@@ -414,6 +422,7 @@ export class DashboardService {
       const qty = culls.reduce((s, c) => s + c.quantity, 0);
       items.push({
         id: 'cull-month',
+        kind: 'CULL',
         type: 'Descarte',
         target: `${qty} cabeças no período`,
         dueDate: now.toISOString(),
