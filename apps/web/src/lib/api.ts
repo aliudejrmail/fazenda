@@ -1,7 +1,12 @@
 import type { AuthResponse, User } from "./types";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+/**
+ * Por padrão a API é acessada via proxy same-origin do Next (`/api/v1`, ver
+ * next.config.ts), o que mantém os cookies httpOnly como first-party.
+ * `NEXT_PUBLIC_API_URL` permite apontar direto para outra origem (exige
+ * CORS + COOKIE_SAMESITE=none no backend).
+ */
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
 
 export class ApiError extends Error {
   status: number;
@@ -16,23 +21,18 @@ export class ApiError extends Error {
 }
 
 type ApiOptions = RequestInit & {
-  skipAuth?: boolean;
   skipFarm?: boolean;
+  /** não tenta refresh automático em 401 (ex.: login, refresh) */
+  skipRefresh?: boolean;
+  /** interno: evita loop infinito no refresh */
+  _retry?: boolean;
 };
+
+const CSRF_HEADERS = { "X-Requested-With": "fazenda-web" };
 
 function getStorage(key: string): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(key);
-}
-
-export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("refreshToken", refreshToken);
-}
-
-export function clearTokens() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
 }
 
 export function getSelectedFarmId(): string | null {
@@ -63,17 +63,36 @@ async function parseError(res: Response): Promise<ApiError> {
   return new ApiError(message, res.status, body);
 }
 
+let refreshInFlight: Promise<boolean> | null = null;
+
+async function refreshSession(): Promise<boolean> {
+  const res = await fetch(`${API_URL}/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...CSRF_HEADERS },
+    body: "{}",
+  });
+  return res.ok;
+}
+
+function ensureRefresh(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = refreshSession()
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { skipAuth, skipFarm, headers: initHeaders, ...rest } = options;
+  const { skipFarm, skipRefresh, _retry, headers: initHeaders, ...rest } = options;
   const headers = new Headers(initHeaders);
   if (!headers.has("Content-Type") && rest.body) {
     headers.set("Content-Type", "application/json");
   }
-
-  if (!skipAuth) {
-    const token = getStorage("accessToken");
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-  }
+  headers.set("X-Requested-With", CSRF_HEADERS["X-Requested-With"]);
 
   if (!skipFarm) {
     const farmId = getSelectedFarmId();
@@ -83,7 +102,14 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers,
+    credentials: "include",
   });
+
+  if (res.status === 401 && !skipRefresh && !_retry) {
+    if (await ensureRefresh()) {
+      return api<T>(path, { ...options, _retry: true });
+    }
+  }
 
   if (!res.ok) {
     throw await parseError(res);
@@ -103,39 +129,34 @@ export async function login(
   return api<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
-    skipAuth: true,
     skipFarm: true,
+    skipRefresh: true,
   });
 }
 
-export async function register(
-  name: string,
-  email: string,
-  password: string,
-): Promise<AuthResponse> {
-  return api<AuthResponse>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({ name, email, password }),
-    skipAuth: true,
-    skipFarm: true,
-  });
+export async function logoutRequest(): Promise<void> {
+  try {
+    await api("/auth/logout", {
+      method: "POST",
+      body: "{}",
+      skipFarm: true,
+    });
+  } catch {
+    /* melhor esforço: cookies expiram de qualquer forma */
+  }
 }
 
 export async function fetchMe(): Promise<
   User & {
-    memberships: Array<{ farm: { id: string; name: string; city?: string | null; state?: string | null } }>;
+    memberships: Array<{
+      farm: {
+        id: string;
+        name: string;
+        city?: string | null;
+        state?: string | null;
+      };
+    }>;
   }
 > {
   return api("/auth/me", { skipFarm: true });
-}
-
-export async function refreshAccessToken(): Promise<AuthResponse> {
-  const refreshToken = getStorage("refreshToken");
-  if (!refreshToken) throw new ApiError("Sem refresh token", 401);
-  return api<AuthResponse>("/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({ refreshToken }),
-    skipAuth: true,
-    skipFarm: true,
-  });
 }

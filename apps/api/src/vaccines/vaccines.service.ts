@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaignDto, CreateVaccineDto } from './dto/vaccine.dto';
 
@@ -33,6 +37,22 @@ export class VaccinesService {
   }
 
   async createCampaign(farmId: string, dto: CreateCampaignDto) {
+    const vaccine = await this.prisma.vaccine.findFirst({
+      where: { id: dto.vaccineId, farmId },
+    });
+    if (!vaccine) {
+      throw new NotFoundException('Vacina não encontrada nesta fazenda');
+    }
+
+    if (dto.herdLotId) {
+      const lot = await this.prisma.herdLot.findFirst({
+        where: { id: dto.herdLotId, farmId, deletedAt: null },
+      });
+      if (!lot) {
+        throw new BadRequestException('Lote inválido para esta fazenda');
+      }
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const campaign = await tx.vaccinationCampaign.create({
         data: {

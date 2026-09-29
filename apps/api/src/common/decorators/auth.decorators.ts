@@ -13,3 +13,12 @@ export const FarmId = createParamDecorator(
     return (request.headers['x-farm-id'] as string) || request.farmId;
   },
 );
+
+export const Membership = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.membership as
+      | { role: string; userId: string; farmId: string }
+      | undefined;
+  },
+);

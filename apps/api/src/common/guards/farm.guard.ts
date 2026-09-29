@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 @Injectable()
 export class FarmGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,10 +29,20 @@ export class FarmGuard implements CanActivate {
       where: {
         userId_farmId: { userId: user.userId, farmId },
       },
+      include: {
+        farm: { select: { id: true, deletedAt: true } },
+      },
     });
 
-    if (!membership) {
+    if (!membership || membership.farm.deletedAt) {
       throw new ForbiddenException('Sem acesso a esta fazenda');
+    }
+
+    const method = String(request.method || 'GET').toUpperCase();
+    if (!READ_METHODS.has(method) && membership.role === 'VIEWER') {
+      throw new ForbiddenException(
+        'Perfil visualizador: apenas leitura nesta fazenda',
+      );
     }
 
     request.farmId = farmId;

@@ -286,7 +286,7 @@ async function main() {
   }
 
   console.log('Seed OK');
-  console.log('Login: admin@fazenda.local / admin123');
+  console.log('Login: admin@fazenda.local (senha definida no seed — altere em produção)');
   console.log(`Fazenda: ${farm.name} (${farm.id})`);
 }
 

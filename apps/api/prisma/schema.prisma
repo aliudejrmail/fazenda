@@ -123,12 +123,20 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String    @id @default(cuid())
+  /// SHA-256 do token opaco (o token em texto puro nunca é persistido)
+  tokenHash String    @unique
+  /// Todos os tokens derivados de um mesmo login; reuso => revoga a família inteira
+  familyId  String
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  /// Preenchido quando o token é rotacionado (consumido)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([familyId])
+  @@index([userId])
 }
 
 model Farm {

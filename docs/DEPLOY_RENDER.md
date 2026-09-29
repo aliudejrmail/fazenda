@@ -49,8 +49,9 @@ As URLs finais ficam assim (ajuste se o nome do serviço for outro):
 | `CORS_ORIGIN` | `https://fazenda-web.onrender.com` |
 | `DATABASE_URL` | já vem do banco (ou cole a URL do Neon) |
 | `JWT_SECRET` | gerado pelo Blueprint |
-| `JWT_REFRESH_SECRET` | gerado pelo Blueprint |
-| `SEED_ON_BOOT` | `true` |
+| `SEED_ON_BOOT` | `true` só no 1º deploy da demo (cria o usuário admin); depois volte para `false` |
+| `ALLOW_PUBLIC_REGISTER` | `false` (padrão) |
+| `COOKIE_SAMESITE` | *(vazio = `lax`)* — só use `none` se a web chamar a API direto de outro domínio |
 
 Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 
@@ -58,9 +59,13 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 
 | Variável | Valor |
 |----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://fazenda-api.onrender.com/api/v1` |
+| `API_PROXY_TARGET` | `https://fazenda-api.onrender.com` |
+| `NEXT_PUBLIC_API_URL` | *(deixe vazio)* |
 
-**Importante:** `NEXT_PUBLIC_*` entra no **build**. Após definir, faça um novo deploy da web.
+A sessão usa cookies `httpOnly`. A web chama `/api/v1/*` na **própria origem** e o Next
+faz o proxy para `API_PROXY_TARGET`, mantendo os cookies como first-party (sem CORS/SameSite=None).
+
+**Importante:** `API_PROXY_TARGET` é lido no **build** (rewrites). Após alterar, faça um novo deploy da web.
 
 ## 4. Deploy manual (sem Blueprint)
 
@@ -82,7 +87,7 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 - **Root Directory:** *(deixe vazio)*
 - **Build Command:** `npm run build`   (ou `npm run build:web`)
 - **Start Command:** `npm run start`   (ou `npm run start:web`)
-- Env: `NEXT_PUBLIC_API_URL=https://SUA-API.onrender.com/api/v1`
+- Env: `API_PROXY_TARGET=https://SUA-API.onrender.com`
 
 ## 5. Testar a demo
 
@@ -103,7 +108,8 @@ Depois de salvar, clique em **Manual Deploy** → **Deploy latest commit**.
 
 | Sintoma | Solução |
 |---------|---------|
-| Web chama `localhost:3001` | `NEXT_PUBLIC_API_URL` não foi setada **antes** do build — redeploy a web |
+| Web chama `localhost:3001` / 502 no `/api/v1` | `API_PROXY_TARGET` não foi setada **antes** do build — defina e redeploy a web |
+| Login OK mas volta para /login | Cookie bloqueado: confirme que a web usa o proxy (`NEXT_PUBLIC_API_URL` vazio) ou, em modo cross-domain, `COOKIE_SAMESITE=none` + HTTPS |
 | CORS bloqueado | `CORS_ORIGIN` deve ser exatamente a URL da web (https, sem barra no final). Se a API retornar 502, o browser também mostra erro de CORS — veja os logs da API |
 | API 502 Bad Gateway | Quase sempre `DATABASE_URL` ausente/inválida ou migrate falhou. Use Neon se o Postgres free do Render não existir. Confira **Logs** do serviço `fazenda-api` |
 | Login inválido | Aguarde o start com seed (`SEED_ON_BOOT=true`) ou rode `npm run prisma:seed` no Shell do Render |

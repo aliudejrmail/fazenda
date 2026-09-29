@@ -11,13 +11,11 @@ import {
 } from "react";
 import {
   api,
-  clearTokens,
   fetchMe,
   getSelectedFarmId,
   login as apiLogin,
-  register as apiRegister,
+  logoutRequest,
   setSelectedFarmId as persistFarmId,
-  setTokens,
 } from "./api";
 import type { Farm, User } from "./types";
 
@@ -28,10 +26,10 @@ type AuthContextValue = {
   selectedFarmId: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   selectFarm: (farmId: string) => void;
   refreshFarms: () => Promise<Farm[]>;
+  /** true quando há sessão válida (cookie httpOnly confirmado via /auth/me) */
   hasToken: boolean;
 };
 
@@ -42,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [selectedFarmId, setSelectedFarmIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasToken, setHasToken] = useState(false);
 
   const applyFarms = useCallback((list: Farm[], preferredId?: string | null) => {
     setFarms(list);
@@ -62,6 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistFarmId(null);
   }, []);
 
+  const resetSession = useCallback(() => {
+    persistFarmId(null);
+    setUser(null);
+    setFarms([]);
+    setSelectedFarmIdState(null);
+  }, []);
+
   const refreshFarms = useCallback(async () => {
     const list = await api<Farm[]>("/farms", { skipFarm: true });
     applyFarms(list, getSelectedFarmId());
@@ -69,32 +73,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyFarms]);
 
   const bootstrap = useCallback(async () => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    setHasToken(Boolean(token));
-    if (!token) {
-      setUser(null);
-      setFarms([]);
-      setSelectedFarmIdState(null);
-      setLoading(false);
-      return;
-    }
     try {
       const me = await fetchMe();
       setUser({ id: me.id, name: me.name, email: me.email });
       const list = await api<Farm[]>("/farms", { skipFarm: true });
       applyFarms(list, getSelectedFarmId());
     } catch {
-      clearTokens();
-      setHasToken(false);
-      setUser(null);
-      setFarms([]);
-      setSelectedFarmIdState(null);
-      persistFarmId(null);
+      resetSession();
     } finally {
       setLoading(false);
     }
-  }, [applyFarms]);
+  }, [applyFarms, resetSession]);
 
   useEffect(() => {
     void bootstrap();
@@ -103,8 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const res = await apiLogin(email, password);
-      setTokens(res.accessToken, res.refreshToken);
-      setHasToken(true);
       setUser(res.user);
       const list = await api<Farm[]>("/farms", { skipFarm: true });
       applyFarms(list, getSelectedFarmId());
@@ -112,25 +99,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applyFarms],
   );
 
-  const register = useCallback(
-    async (name: string, email: string, password: string) => {
-      const res = await apiRegister(name, email, password);
-      setTokens(res.accessToken, res.refreshToken);
-      setHasToken(true);
-      setUser(res.user);
-      applyFarms([], null);
-    },
-    [applyFarms],
-  );
-
-  const logout = useCallback(() => {
-    clearTokens();
-    persistFarmId(null);
-    setHasToken(false);
-    setUser(null);
-    setFarms([]);
-    setSelectedFarmIdState(null);
-  }, []);
+  const logout = useCallback(async () => {
+    await logoutRequest();
+    resetSession();
+  }, [resetSession]);
 
   const selectFarm = useCallback((farmId: string) => {
     persistFarmId(farmId);
@@ -142,6 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [farms, selectedFarmId],
   );
 
+  const hasToken = Boolean(user);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -150,7 +124,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       selectedFarmId,
       loading,
       login,
-      register,
       logout,
       selectFarm,
       refreshFarms,
@@ -163,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       selectedFarmId,
       loading,
       login,
-      register,
       logout,
       selectFarm,
       refreshFarms,

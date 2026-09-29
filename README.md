@@ -42,7 +42,9 @@ npm run start:dev
 
 ```powershell
 cd D:\projetos_web\fazenda\apps\web
-# .env.local já contém NEXT_PUBLIC_API_URL
+# Recomendado: remova NEXT_PUBLIC_API_URL do .env.local para usar o proxy same-origin
+# (/api/v1 -> http://localhost:3001, ajustável via API_PROXY_TARGET). Com a variável
+# definida a web chama a API direto (funciona em localhost, pois cookies não isolam portas).
 npm run dev
 ```
 
@@ -66,7 +68,7 @@ Resumo rápido:
 2. No Render: **New → Blueprint** e use o `render.yaml`
 3. Configure:
    - API: `CORS_ORIGIN=https://fazenda-web.onrender.com`
-   - Web: `NEXT_PUBLIC_API_URL=https://fazenda-api.onrender.com/api/v1`
+   - Web: `API_PROXY_TARGET=https://fazenda-api.onrender.com` (proxy same-origin; sessão via cookies httpOnly)
 4. Redeploy e acesse a URL da web
 
 ## Módulos

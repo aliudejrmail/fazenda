@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateExpenseCategoryDto,
@@ -42,7 +42,16 @@ export class FinanceService {
     });
   }
 
-  createExpense(farmId: string, dto: CreateExpenseDto) {
+  async createExpense(farmId: string, dto: CreateExpenseDto) {
+    if (dto.categoryId) {
+      const category = await this.prisma.expenseCategory.findFirst({
+        where: { id: dto.categoryId, farmId },
+      });
+      if (!category) {
+        throw new BadRequestException('Categoria inválida para esta fazenda');
+      }
+    }
+
     return this.prisma.expense.create({
       data: {
         farmId,
@@ -57,10 +66,14 @@ export class FinanceService {
   }
 
   async removeExpense(farmId: string, id: string) {
-    return this.prisma.expense.updateMany({
-      where: { id, farmId },
+    const result = await this.prisma.expense.updateMany({
+      where: { id, farmId, deletedAt: null },
       data: { deletedAt: new Date() },
     });
+    if (result.count === 0) {
+      throw new NotFoundException('Despesa não encontrada');
+    }
+    return { ok: true };
   }
 
   listRevenues(farmId: string, from?: string, to?: string) {
