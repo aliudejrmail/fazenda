@@ -23,6 +23,8 @@ export class VaccinesService {
         farmId,
         name: dto.name,
         manufacturer: dto.manufacturer,
+        batchNumber: dto.batchNumber?.trim() || null,
+        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
         notes: dto.notes,
       },
     });
@@ -44,10 +46,13 @@ export class VaccinesService {
       throw new NotFoundException('Vacina não encontrada nesta fazenda');
     }
 
-    if (
-      dto.expiryDate &&
-      new Date(dto.expiryDate).getTime() < new Date(dto.date).getTime()
-    ) {
+    // Sem lote/validade informados na campanha, herda os do cadastro da vacina
+    const batchNumber = dto.batchNumber?.trim() || vaccine.batchNumber || null;
+    const expiryDate = dto.expiryDate
+      ? new Date(dto.expiryDate)
+      : vaccine.expiryDate;
+
+    if (expiryDate && expiryDate.getTime() < new Date(dto.date).getTime()) {
       throw new BadRequestException(
         'A vacina estava vencida na data da aplicação. Verifique a validade do lote.',
       );
@@ -72,8 +77,8 @@ export class VaccinesService {
           cost: dto.cost ?? 0,
           herdLotId: dto.herdLotId,
           nextDueDate: dto.nextDueDate ? new Date(dto.nextDueDate) : null,
-          batchNumber: dto.batchNumber?.trim() || null,
-          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
+          batchNumber,
+          expiryDate,
           notes: dto.notes,
         },
         include: { vaccine: true },

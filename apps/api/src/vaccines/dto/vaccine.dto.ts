@@ -19,6 +19,17 @@ export class CreateVaccineDto {
   @IsString()
   manufacturer?: string;
 
+  /** Lote do fabricante */
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  batchNumber?: string;
+
+  /** Validade do lote */
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
+
   @IsOptional()
   @IsString()
   notes?: string;

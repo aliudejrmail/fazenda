@@ -408,6 +408,10 @@ model Vaccine {
   farmId      String
   name        String
   manufacturer String?
+  /// Lote do fabricante da vacina em estoque
+  batchNumber String?
+  /// Validade do lote
+  expiryDate  DateTime?
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

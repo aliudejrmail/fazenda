@@ -14,6 +14,7 @@ import {
   Section,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { ExpiryCell } from "@/components/vacinas/ExpiryCell";
 
 export default function VacinasPage() {
   const [tab, setTab] = useState("vaccines");
@@ -23,6 +24,9 @@ export default function VacinasPage() {
   const [lots, setLots] = useState<HerdLot[]>([]);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [campaignVaccineId, setCampaignVaccineId] = useState("");
+  const selectedVaccine =
+    vaccines.find((v) => v.id === campaignVaccineId) ?? vaccines[0];
 
   const load = useCallback(async () => {
     setError("");
@@ -58,6 +62,8 @@ export default function VacinasPage() {
         body: JSON.stringify({
           name: String(fd.get("name")),
           manufacturer: String(fd.get("manufacturer") || "") || undefined,
+          batchNumber: String(fd.get("batchNumber") || "").trim() || undefined,
+          expiryDate: String(fd.get("expiryDate") || "") || undefined,
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
@@ -140,17 +146,28 @@ export default function VacinasPage() {
             <FormGrid>
               <Input label="Nome" name="name" required minLength={2} />
               <Input label="Fabricante" name="manufacturer" />
+              <Input
+                label="Lote"
+                name="batchNumber"
+                maxLength={60}
+                placeholder="Ex.: L2345"
+              />
+              <Input label="Data de validade" name="expiryDate" type="date" />
               <Textarea label="Observações" name="notes" />
             </FormGrid>
           </FormCard>
           {vaccines.length === 0 ? (
             <EmptyState message="Nenhuma vacina cadastrada." />
           ) : (
-            <Table headers={["Nome", "Fabricante"]}>
+            <Table headers={["Nome", "Fabricante", "Lote", "Validade"]}>
               {vaccines.map((v) => (
                 <tr key={v.id}>
                   <Td>{v.name}</Td>
                   <Td>{v.manufacturer ?? "—"}</Td>
+                  <Td>{v.batchNumber || "—"}</Td>
+                  <Td>
+                    <ExpiryCell value={v.expiryDate} />
+                  </Td>
                 </tr>
               ))}
             </Table>
@@ -160,7 +177,13 @@ export default function VacinasPage() {
         <>
           <FormCard title="Nova campanha" onSubmit={onCampaign} submitting={submitting}>
             <FormGrid>
-              <Select label="Vacina" name="vaccineId" required>
+              <Select
+                label="Vacina"
+                name="vaccineId"
+                required
+                value={selectedVaccine?.id ?? ""}
+                onChange={(e) => setCampaignVaccineId(e.target.value)}
+              >
                 {vaccines.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -168,13 +191,22 @@ export default function VacinasPage() {
               <Input label="Data" name="date" type="date" required defaultValue={todayISO()} />
               <Input label="Doses" name="doses" type="number" min={1} required />
               <Input label="Custo" name="cost" type="number" step="0.01" />
+              {/* key: remonta os campos ao trocar a vacina, preenchendo do cadastro */}
               <Input
+                key={`batch-${selectedVaccine?.id}`}
                 label="Lote da vacina"
                 name="batchNumber"
                 maxLength={60}
                 placeholder="Ex.: L2345"
+                defaultValue={selectedVaccine?.batchNumber ?? ""}
               />
-              <Input label="Validade da vacina" name="expiryDate" type="date" />
+              <Input
+                key={`expiry-${selectedVaccine?.id}`}
+                label="Validade da vacina"
+                name="expiryDate"
+                type="date"
+                defaultValue={selectedVaccine?.expiryDate?.slice(0, 10) ?? ""}
+              />
               <Select label="Lote do rebanho" name="herdLotId" defaultValue="">
                 <option value="">—</option>
                 {lots.map((l) => (
@@ -204,7 +236,9 @@ export default function VacinasPage() {
                   <Td>{formatDate(c.date)}</Td>
                   <Td>{c.vaccine?.name ?? "—"}</Td>
                   <Td>{c.batchNumber || "—"}</Td>
-                  <Td>{c.expiryDate ? formatDate(c.expiryDate) : "—"}</Td>
+                  <Td>
+                    <ExpiryCell value={c.expiryDate} />
+                  </Td>
                   <Td>{formatNumber(c.doses)}</Td>
                   <Td>{c.cost != null ? formatCurrency(c.cost) : "—"}</Td>
                   <Td>{formatDate(c.nextDueDate)}</Td>

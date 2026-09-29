@@ -203,6 +203,10 @@ export type Vaccine = {
   id: string;
   name: string;
   manufacturer?: string | null;
+  /** Lote do fabricante */
+  batchNumber?: string | null;
+  /** Validade do lote */
+  expiryDate?: string | null;
   notes?: string | null;
 };
 
