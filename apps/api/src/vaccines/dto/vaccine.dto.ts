@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
@@ -47,6 +48,17 @@ export class CreateCampaignDto {
   @IsOptional()
   @IsDateString()
   nextDueDate?: string;
+
+  /** Lote do fabricante da vacina */
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  batchNumber?: string;
+
+  /** Validade do lote da vacina */
+  @IsOptional()
+  @IsDateString()
+  expiryDate?: string;
 
   @IsOptional()
   @IsString()

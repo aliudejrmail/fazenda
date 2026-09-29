@@ -44,6 +44,15 @@ export class VaccinesService {
       throw new NotFoundException('Vacina não encontrada nesta fazenda');
     }
 
+    if (
+      dto.expiryDate &&
+      new Date(dto.expiryDate).getTime() < new Date(dto.date).getTime()
+    ) {
+      throw new BadRequestException(
+        'A vacina estava vencida na data da aplicação. Verifique a validade do lote.',
+      );
+    }
+
     if (dto.herdLotId) {
       const lot = await this.prisma.herdLot.findFirst({
         where: { id: dto.herdLotId, farmId, deletedAt: null },
@@ -63,6 +72,8 @@ export class VaccinesService {
           cost: dto.cost ?? 0,
           herdLotId: dto.herdLotId,
           nextDueDate: dto.nextDueDate ? new Date(dto.nextDueDate) : null,
+          batchNumber: dto.batchNumber?.trim() || null,
+          expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
           notes: dto.notes,
         },
         include: { vaccine: true },

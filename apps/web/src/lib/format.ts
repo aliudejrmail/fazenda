@@ -107,11 +107,16 @@ export function formatCurrency(value: number | string | null | undefined): strin
   }).format(Number.isFinite(n) ? n : 0);
 }
 
+/** Datas "só dia" chegam da API como meia-noite UTC (ex.: 2026-09-29T00:00:00.000Z). */
+const DATE_ONLY_UTC = /^\d{4}-\d{2}-\d{2}(T00:00:00(\.000)?Z)?$/;
+
 export function formatDate(value?: string | Date | null): string {
   if (!value) return "—";
   const d = typeof value === "string" ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return "—";
-  return new Intl.DateTimeFormat("pt-BR").format(d);
+  // Em UTC para não recuar um dia no fuso do Brasil; timestamps reais usam o fuso local.
+  const dateOnly = typeof value === "string" && DATE_ONLY_UTC.test(value);
+  return new Intl.DateTimeFormat("pt-BR", dateOnly ? { timeZone: "UTC" } : undefined).format(d);
 }
 
 export function formatNumber(value: number | string | null | undefined): string {

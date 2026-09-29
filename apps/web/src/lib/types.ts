@@ -214,6 +214,10 @@ export type Campaign = {
   cost?: number | string | null;
   herdLotId?: string | null;
   nextDueDate?: string | null;
+  /** Lote do fabricante da vacina */
+  batchNumber?: string | null;
+  /** Validade do lote da vacina */
+  expiryDate?: string | null;
   notes?: string | null;
   vaccine?: Vaccine;
 };

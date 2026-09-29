@@ -86,6 +86,8 @@ export default function VacinasPage() {
           cost: fd.get("cost") ? Number(fd.get("cost")) : undefined,
           herdLotId: String(fd.get("herdLotId") || "") || undefined,
           nextDueDate: String(fd.get("nextDueDate") || "") || undefined,
+          batchNumber: String(fd.get("batchNumber") || "").trim() || undefined,
+          expiryDate: String(fd.get("expiryDate") || "") || undefined,
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
@@ -166,7 +168,14 @@ export default function VacinasPage() {
               <Input label="Data" name="date" type="date" required defaultValue={todayISO()} />
               <Input label="Doses" name="doses" type="number" min={1} required />
               <Input label="Custo" name="cost" type="number" step="0.01" />
-              <Select label="Lote" name="herdLotId" defaultValue="">
+              <Input
+                label="Lote da vacina"
+                name="batchNumber"
+                maxLength={60}
+                placeholder="Ex.: L2345"
+              />
+              <Input label="Validade da vacina" name="expiryDate" type="date" />
+              <Select label="Lote do rebanho" name="herdLotId" defaultValue="">
                 <option value="">—</option>
                 {lots.map((l) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
@@ -179,11 +188,23 @@ export default function VacinasPage() {
           {campaigns.length === 0 ? (
             <EmptyState message="Nenhuma campanha registrada." />
           ) : (
-            <Table headers={["Data", "Vacina", "Doses", "Custo", "Próxima"]}>
+            <Table
+              headers={[
+                "Data",
+                "Vacina",
+                "Lote da vacina",
+                "Validade",
+                "Doses",
+                "Custo",
+                "Próxima",
+              ]}
+            >
               {campaigns.map((c) => (
                 <tr key={c.id}>
                   <Td>{formatDate(c.date)}</Td>
                   <Td>{c.vaccine?.name ?? "—"}</Td>
+                  <Td>{c.batchNumber || "—"}</Td>
+                  <Td>{c.expiryDate ? formatDate(c.expiryDate) : "—"}</Td>
                   <Td>{formatNumber(c.doses)}</Td>
                   <Td>{c.cost != null ? formatCurrency(c.cost) : "—"}</Td>
                   <Td>{formatDate(c.nextDueDate)}</Td>

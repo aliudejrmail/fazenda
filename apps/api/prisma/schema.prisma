@@ -422,6 +422,10 @@ model VaccinationCampaign {
   herdLotId   String?
   date        DateTime
   nextDueDate DateTime?
+  /// Lote do fabricante da vacina aplicada (rastreabilidade sanitária)
+  batchNumber String?
+  /// Validade do lote da vacina
+  expiryDate  DateTime?
   doses       Int
   cost        Decimal  @db.Decimal(14, 2) @default(0)
   notes       String?
