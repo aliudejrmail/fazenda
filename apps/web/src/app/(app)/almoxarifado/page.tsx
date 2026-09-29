@@ -52,7 +52,8 @@ export default function AlmoxarifadoPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/inventory/items", {
         method: "POST",
@@ -69,7 +70,7 @@ export default function AlmoxarifadoPage() {
             : undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar item");
@@ -82,7 +83,8 @@ export default function AlmoxarifadoPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/inventory/movements", {
         method: "POST",
@@ -95,7 +97,7 @@ export default function AlmoxarifadoPage() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar movimento");

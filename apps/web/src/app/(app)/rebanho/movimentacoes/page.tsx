@@ -60,7 +60,8 @@ export default function MovimentacoesPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/herd/movements", {
         method: "POST",
@@ -79,7 +80,7 @@ export default function MovimentacoesPage() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar");
@@ -92,7 +93,8 @@ export default function MovimentacoesPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/herd/weighings", {
         method: "POST",
@@ -104,7 +106,7 @@ export default function MovimentacoesPage() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar");

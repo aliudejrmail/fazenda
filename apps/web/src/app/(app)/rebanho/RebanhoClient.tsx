@@ -61,7 +61,8 @@ export default function RebanhoClient() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const retiroId = String(fd.get("retiroId") || "");
     const entryWeight = String(fd.get("entryWeightKg") || "");
     const targetWeight = String(fd.get("targetWeightKg") || "");
@@ -82,7 +83,7 @@ export default function RebanhoClient() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar lote");

@@ -41,7 +41,8 @@ export default function RetirosPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/retiros", {
         method: "POST",
@@ -52,7 +53,7 @@ export default function RetirosPage() {
           matricesEmpty: Number(fd.get("matricesEmpty") || 0),
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao criar retiro");

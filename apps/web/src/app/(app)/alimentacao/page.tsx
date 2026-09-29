@@ -81,7 +81,8 @@ export default function AlimentacaoPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const rows = ingredients.filter((r) => r.inventoryItemId && r.percent);
     try {
       await api("/feeding/diets", {
@@ -96,7 +97,7 @@ export default function AlimentacaoPage() {
           })),
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       setIngredients([{ inventoryItemId: "", percent: "" }]);
       await load();
       setTab("dietas");
@@ -111,7 +112,8 @@ export default function AlimentacaoPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const kg = String(fd.get("kgPerAnimal") || "");
     try {
       await api("/feeding/assignments", {
@@ -123,7 +125,7 @@ export default function AlimentacaoPage() {
           kgPerAnimal: kg ? Number(kg) : undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
       setTab("atribuicoes");
     } catch (err) {
@@ -137,7 +139,8 @@ export default function AlimentacaoPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const animals = String(fd.get("animals") || "");
     const kg = String(fd.get("kgPerAnimal") || "");
     const dietId = String(fd.get("dietId") || "");
@@ -153,7 +156,7 @@ export default function AlimentacaoPage() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
       setTab("consumo");
     } catch (err) {

@@ -49,7 +49,8 @@ export default function FuncionariosPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/employees", {
         method: "POST",
@@ -62,7 +63,7 @@ export default function FuncionariosPage() {
           notes: String(fd.get("notes") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar funcionário");
@@ -75,7 +76,8 @@ export default function FuncionariosPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api("/employees/payroll", {
         method: "POST",
@@ -87,7 +89,7 @@ export default function FuncionariosPage() {
           description: String(fd.get("description") || "") || undefined,
         }),
       });
-      e.currentTarget.reset();
+      form.reset();
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao salvar folha");

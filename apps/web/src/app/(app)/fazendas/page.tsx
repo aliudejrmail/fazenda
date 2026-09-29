@@ -46,7 +46,8 @@ export default function FazendasPage() {
     e.preventDefault();
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       const farm = await api<Farm>("/farms", {
         method: "POST",
@@ -58,7 +59,7 @@ export default function FazendasPage() {
         }),
       });
       selectFarm(farm.id);
-      e.currentTarget.reset();
+      form.reset();
       await load();
       router.push("/");
     } catch (err) {
@@ -73,7 +74,8 @@ export default function FazendasPage() {
     if (!editing) return;
     setSubmitting(true);
     setError("");
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     try {
       await api<Farm>(`/farms/${editing.id}`, {
         method: "PATCH",
