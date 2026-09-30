@@ -63,6 +63,8 @@ export type HerdLot = {
   targetWeightKg?: number | string | null;
   trackingMode?: string;
   status?: string;
+  /** Sem lançamentos/movimentações: pode ser excluído. */
+  canDelete?: boolean;
   notes?: string | null;
   retiroId?: string | null;
   retiro?: { id: string; name: string } | null;

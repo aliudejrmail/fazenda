@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { Campaign, HerdLot, Vaccine } from "@/lib/types";
-import { formatNumber, todayISO } from "@/lib/format";
+import { formatNumber, isOpenLot, todayISO } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Field";
 import { FormCard, FormGrid } from "@/components/ui/LayoutBits";
@@ -117,7 +117,9 @@ export function CampaignForm({
           defaultValue={campaign?.herdLotId ?? ""}
         >
           <option value="">—</option>
-          {lots.map((l) => (
+          {lots
+            .filter((l) => isOpenLot(l) || l.id === campaign?.herdLotId)
+            .map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}
             </option>

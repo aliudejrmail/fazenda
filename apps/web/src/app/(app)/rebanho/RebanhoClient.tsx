@@ -11,6 +11,7 @@ import {
   LOT_STATUS_LABELS,
   PRODUCTION_SYSTEM_LABELS,
   formatNumber,
+  isOpenLot,
   labelOf,
   optionsFrom,
   todayISO,
@@ -27,6 +28,8 @@ import { Table, Td } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 import { useFormSubmit } from "@/lib/use-form-submit";
+import { useAuth } from "@/lib/auth-context";
+import { InactiveBadge } from "@/components/vacinas/InactiveBadge";
 
 export default function RebanhoClient() {
   const searchParams = useSearchParams();
@@ -36,6 +39,8 @@ export default function RebanhoClient() {
   const [error, setError] = useState("");
   const { submitting, submit } = useFormSubmit(setError);
   const confirm = useConfirm();
+  const { selectedFarm } = useAuth();
+  const canWrite = selectedFarm?.role !== "VIEWER";
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -92,7 +97,7 @@ export default function RebanhoClient() {
   async function onDelete(lot: HerdLot) {
     const ok = await confirm({
       title: "Excluir lote?",
-      message: `${lot.name}\n\nO lote deixará de aparecer nas listas e nos totais.`,
+      message: `${lot.name}\n\nA exclusão é definitiva e não pode ser desfeita.`,
       confirmLabel: "Excluir",
       tone: "danger",
     });
@@ -102,6 +107,33 @@ export default function RebanhoClient() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao excluir");
+    }
+  }
+
+  async function onToggleStatus(lot: HerdLot) {
+    const closing = isOpenLot(lot);
+    const ok = await confirm(
+      closing
+        ? {
+            title: "Encerrar lote?",
+            message: `${lot.name}\n\nEle deixará de receber novos lançamentos. O histórico é mantido e você pode reativá-lo depois.`,
+            confirmLabel: "Encerrar",
+          }
+        : {
+            title: "Reativar lote?",
+            message: lot.name,
+            confirmLabel: "Reativar",
+          },
+    );
+    if (!ok) return;
+    try {
+      await api(`/herd/lots/${lot.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: closing ? "ENCERRADO" : "ATIVO" }),
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao atualizar o lote");
     }
   }
 
@@ -122,6 +154,7 @@ export default function RebanhoClient() {
         </div>
       ) : null}
 
+      {canWrite ? (
       <FormCard title="Novo lote" onSubmit={onCreate} submitting={submitting}>
         <FormGrid>
           <Input label="Nome" name="name" required minLength={2} />
@@ -191,6 +224,7 @@ export default function RebanhoClient() {
           <Textarea label="Observações" name="notes" />
         </FormGrid>
       </FormCard>
+      ) : null}
 
       {loading ? (
         <p className="text-sm text-[var(--ink-muted)]">Carregando...</p>
@@ -201,14 +235,24 @@ export default function RebanhoClient() {
           headers={["Nome", "Retiro", "Categoria", "Sistema", "Sexo", "Qtd", "Status", ""]}
         >
           {lots.map((lot) => (
-            <tr key={lot.id}>
+            <tr
+              key={lot.id}
+              className={isOpenLot(lot) ? undefined : "opacity-70"}
+            >
               <Td className="font-medium">
-                <Link
-                  href={`/rebanho/${lot.id}`}
-                  className="text-[var(--green)] underline-offset-2 hover:underline"
-                >
-                  {lot.name}
-                </Link>
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  <Link
+                    href={`/rebanho/${lot.id}`}
+                    className="text-[var(--green)] underline-offset-2 hover:underline"
+                  >
+                    {lot.name}
+                  </Link>
+                  {isOpenLot(lot) ? null : (
+                    <InactiveBadge
+                      label={labelOf(LOT_STATUS_LABELS, lot.status)}
+                    />
+                  )}
+                </span>
               </Td>
               <Td>{lot.retiro?.name ?? "—"}</Td>
               <Td>{labelOf(HERD_CATEGORY_LABELS, lot.category)}</Td>
@@ -223,13 +267,30 @@ export default function RebanhoClient() {
                       Ver
                     </Button>
                   </Link>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    onClick={() => void onDelete(lot)}
-                  >
-                    Excluir
-                  </Button>
+                  {canWrite ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => void onToggleStatus(lot)}
+                      >
+                        {isOpenLot(lot) ? "Encerrar" : "Reativar"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="danger"
+                        disabled={!lot.canDelete}
+                        title={
+                          lot.canDelete
+                            ? undefined
+                            : "Possui lançamentos ou movimentações. Encerre em vez de excluir."
+                        }
+                        onClick={() => void onDelete(lot)}
+                      >
+                        Excluir
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </Td>
             </tr>

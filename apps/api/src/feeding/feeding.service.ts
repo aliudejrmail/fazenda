@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertLotInFarm } from '../common/utils/farm-scope';
 import {
   CreateFeedAssignmentDto,
   CreateFeedDietDto,
@@ -141,8 +142,8 @@ export class FeedingService {
   }
 
   async assignDiet(farmId: string, dto: CreateFeedAssignmentDto) {
-    const lot = await this.prisma.herdLot.findFirst({
-      where: { id: dto.herdLotId, farmId, deletedAt: null },
+    const lot = await assertLotInFarm(this.prisma, farmId, dto.herdLotId, {
+      requireActive: true,
     });
     if (!lot) throw new NotFoundException('Lote não encontrado');
 
@@ -194,8 +195,8 @@ export class FeedingService {
   }
 
   async createRecord(farmId: string, dto: CreateFeedRecordDto) {
-    const lot = await this.prisma.herdLot.findFirst({
-      where: { id: dto.herdLotId, farmId, deletedAt: null },
+    const lot = await assertLotInFarm(this.prisma, farmId, dto.herdLotId, {
+      requireActive: true,
     });
     if (!lot) throw new NotFoundException('Lote não encontrado');
 

@@ -12,12 +12,18 @@ export async function assertLotInFarm(
   db: ScopeDb,
   farmId: string,
   id?: string | null,
+  options: { requireActive?: boolean } = {},
 ) {
   if (!id) return null;
   const lot = await db.herdLot.findFirst({
     where: { id, farmId, deletedAt: null },
   });
   if (!lot) throw new NotFoundException('Lote não encontrado');
+  if (options.requireActive && lot.status !== 'ATIVO') {
+    throw new BadRequestException(
+      'Este lote está encerrado. Reative-o para fazer novos lançamentos.',
+    );
+  }
   return lot;
 }
 

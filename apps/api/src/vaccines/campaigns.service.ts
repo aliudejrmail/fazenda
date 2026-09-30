@@ -6,6 +6,7 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { assertLotInFarm } from '../common/utils/farm-scope';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/vaccine.dto';
 import { patchDate, patchText } from './vaccine-utils';
 
@@ -163,8 +164,8 @@ export class CampaignsService {
       );
     }
     if (herdLotId) {
-      const lot = await this.prisma.herdLot.findFirst({
-        where: { id: herdLotId, farmId, deletedAt: null },
+      const lot = await assertLotInFarm(this.prisma, farmId, herdLotId, {
+        requireActive: true,
       });
       if (!lot) {
         throw new BadRequestException('Lote inválido para esta fazenda');

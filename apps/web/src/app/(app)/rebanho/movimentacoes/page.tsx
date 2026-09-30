@@ -9,6 +9,7 @@ import {
   formatCurrency,
   formatDate,
   formatNumber,
+  isOpenLot,
   labelOf,
   optionsFrom,
   todayISO,
@@ -104,7 +105,7 @@ export default function MovimentacoesPage() {
     );
   }
 
-  const lotOpts = lots.map((l) => (
+  const lotOpts = lots.filter(isOpenLot).map((l) => (
     <option key={l.id} value={l.id}>
       {l.name}
     </option>

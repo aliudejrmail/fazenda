@@ -12,6 +12,7 @@ import type {
   Retiro,
 } from "@/lib/types";
 import { useFormSubmit } from "@/lib/use-form-submit";
+import { isOpenLot } from "@/lib/format";
 import { Alert, PageHeader } from "@/components/ui/LayoutBits";
 import { Tabs } from "@/components/ui/Table";
 import {
@@ -53,7 +54,7 @@ export default function ReprodutivoPage() {
         api<CullRecord[]>("/herd/culls"),
         api<ReplacementRecord[]>("/herd/replacements"),
       ]);
-      setLots(l);
+      setLots(l.filter(isOpenLot));
       setRetiros(retirosData.filter((r) => r.active !== false));
       setDiagnoses(d);
       setBirths(b);

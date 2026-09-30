@@ -85,6 +85,11 @@ export const LOT_STATUS_LABELS: Record<string, string> = {
   VENDIDO: "Vendido",
 };
 
+/** Lote ainda recebe lançamentos (não encerrado nem vendido). */
+export function isOpenLot(lot: { status?: string | null }) {
+  return lot.status !== "ENCERRADO" && lot.status !== "VENDIDO";
+}
+
 export const LOT_SEX_LABELS: Record<string, string> = {
   MACHO: "Macho",
   FEMEA: "Fêmea",

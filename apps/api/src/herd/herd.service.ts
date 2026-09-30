@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -17,20 +22,81 @@ import {
   UpdateHerdLotDto,
 } from './dto/herd.dto';
 
+const LOT_LINK_COUNT = {
+  select: {
+    birthRecords: true,
+    mortalityRecords: true,
+    cullRecords: true,
+    replacementRecords: true,
+    movementsFrom: true,
+    movementsTo: true,
+    campaigns: true,
+    weighings: true,
+    feedAssignments: true,
+    feedRecords: true,
+    pregnancyDiagnoses: true,
+  },
+};
+
+type LotLinkCount = {
+  birthRecords: number;
+  mortalityRecords: number;
+  cullRecords: number;
+  replacementRecords: number;
+  movementsFrom: number;
+  movementsTo: number;
+  campaigns: number;
+  weighings: number;
+  feedAssignments: number;
+  feedRecords: number;
+  pregnancyDiagnoses: number;
+};
+
+const LOT_LINK_LABELS: Array<[keyof LotLinkCount, string]> = [
+  ['birthRecords', 'nascimento(s)'],
+  ['mortalityRecords', 'mortalidade(s)'],
+  ['cullRecords', 'descarte(s)'],
+  ['replacementRecords', 'reposição(ões)'],
+  ['movementsFrom', 'movimentação(ões) de saída'],
+  ['movementsTo', 'movimentação(ões) de entrada'],
+  ['campaigns', 'campanha(s) vacinal(is)'],
+  ['weighings', 'pesagem(ns)'],
+  ['feedAssignments', 'dieta(s) atribuída(s)'],
+  ['feedRecords', 'registro(s) de alimentação'],
+  ['pregnancyDiagnoses', 'diagnóstico(s) de prenhez'],
+];
+
+function lotLinkTotal(count: LotLinkCount) {
+  return LOT_LINK_LABELS.reduce((sum, [key]) => sum + count[key], 0);
+}
+
+function describeLotLinks(count: LotLinkCount) {
+  return LOT_LINK_LABELS.filter(([key]) => count[key] > 0)
+    .map(([key, label]) => `${count[key]} ${label}`)
+    .join(', ');
+}
+
 @Injectable()
 export class HerdService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listLots(farmId: string, retiroId?: string) {
-    return this.prisma.herdLot.findMany({
+  async listLots(farmId: string, retiroId?: string) {
+    const lots = await this.prisma.herdLot.findMany({
       where: {
         farmId,
         deletedAt: null,
         ...(retiroId ? { retiroId } : {}),
       },
-      include: { retiro: { select: { id: true, name: true } } },
+      include: {
+        retiro: { select: { id: true, name: true } },
+        _count: LOT_LINK_COUNT,
+      },
       orderBy: [{ system: 'asc' }, { name: 'asc' }],
     });
+    return lots.map((l) => ({
+      ...l,
+      canDelete: lotLinkTotal(l._count) === 0,
+    }));
   }
 
   async createLot(farmId: string, dto: CreateHerdLotDto) {
@@ -194,12 +260,23 @@ export class HerdService {
     };
   }
 
+  /**
+   * Exclui apenas lotes sem lançamentos. Com histórico, o caminho é
+   * encerrar (PATCH `status: ENCERRADO`).
+   */
   async removeLot(farmId: string, id: string) {
-    await this.getLot(farmId, id);
-    return this.prisma.herdLot.update({
-      where: { id },
-      data: { deletedAt: new Date(), status: 'ENCERRADO' },
+    const lot = await this.prisma.herdLot.findFirst({
+      where: { id, farmId, deletedAt: null },
+      include: { _count: LOT_LINK_COUNT },
     });
+    if (!lot) throw new NotFoundException('Lote não encontrado');
+    if (lotLinkTotal(lot._count) > 0) {
+      throw new ConflictException(
+        `Não é possível excluir: o lote possui ${describeLotLinks(lot._count)}. Encerre-o para preservar o histórico.`,
+      );
+    }
+    await this.prisma.herdLot.delete({ where: { id } });
+    return { deleted: true };
   }
 
   listBirths(farmId: string, retiroId?: string) {
@@ -220,7 +297,9 @@ export class HerdService {
       await assertRetiroInFarm(tx, farmId, dto.retiroId, {
         requireActive: true,
       });
-      const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
+      const lot = await assertLotInFarm(tx, farmId, dto.herdLotId, {
+        requireActive: true,
+      });
       const retiroId = dto.retiroId || lot?.retiroId || null;
 
       const record = await tx.birthRecord.create({
@@ -267,7 +346,9 @@ export class HerdService {
       });
       let retiroId = dto.retiroId || null;
       if (dto.herdLotId) {
-        const lot = await assertLotInFarm(tx, farmId, dto.herdLotId);
+        const lot = await assertLotInFarm(tx, farmId, dto.herdLotId, {
+        requireActive: true,
+      });
         if (!lot) throw new NotFoundException('Lote não encontrado');
         if (lot.quantity < dto.quantity) {
           throw new BadRequestException('Quantidade maior que o lote');
@@ -305,8 +386,8 @@ export class HerdService {
   async createCull(farmId: string, dto: CreateCullDto) {
     return this.prisma.$transaction(async (tx) => {
       if (dto.herdLotId) {
-        const lot = await tx.herdLot.findFirst({
-          where: { id: dto.herdLotId, farmId, deletedAt: null },
+        const lot = await assertLotInFarm(tx, farmId, dto.herdLotId, {
+          requireActive: true,
         });
         if (!lot) throw new NotFoundException('Lote não encontrado');
         if (lot.quantity < dto.quantity) {
@@ -343,7 +424,9 @@ export class HerdService {
     const totalCost = new Prisma.Decimal(dto.unitCost).mul(dto.quantity);
     return this.prisma.$transaction(async (tx) => {
       if (dto.herdLotId) {
-        await assertLotInFarm(tx, farmId, dto.herdLotId);
+        await assertLotInFarm(tx, farmId, dto.herdLotId, {
+          requireActive: true,
+        });
         await tx.herdLot.update({
           where: { id: dto.herdLotId },
           data: { quantity: { increment: dto.quantity } },
@@ -388,8 +471,8 @@ export class HerdService {
   async createMovement(farmId: string, dto: CreateMovementDto) {
     return this.prisma.$transaction(async (tx) => {
       if (dto.fromLotId) {
-        const from = await tx.herdLot.findFirst({
-          where: { id: dto.fromLotId, farmId, deletedAt: null },
+        const from = await assertLotInFarm(tx, farmId, dto.fromLotId, {
+          requireActive: true,
         });
         if (!from) throw new NotFoundException('Lote de origem não encontrado');
         if (from.quantity < dto.quantity) {
@@ -402,7 +485,9 @@ export class HerdService {
       }
 
       if (dto.toLotId) {
-        await assertLotInFarm(tx, farmId, dto.toLotId);
+        await assertLotInFarm(tx, farmId, dto.toLotId, {
+          requireActive: true,
+        });
         await tx.herdLot.update({
           where: { id: dto.toLotId },
           data: {
@@ -486,8 +571,8 @@ export class HerdService {
     return this.prisma.$transaction(async (tx) => {
       let retiroId = dto.retiroId || null;
       if (!retiroId && dto.herdLotId) {
-        const lot = await tx.herdLot.findFirst({
-          where: { id: dto.herdLotId, farmId, deletedAt: null },
+        const lot = await assertLotInFarm(tx, farmId, dto.herdLotId, {
+          requireActive: true,
         });
         if (!lot) throw new NotFoundException('Lote não encontrado');
         retiroId = lot.retiroId;
@@ -499,10 +584,9 @@ export class HerdService {
       });
 
       if (dto.herdLotId) {
-        const lot = await tx.herdLot.findFirst({
-          where: { id: dto.herdLotId, farmId, deletedAt: null },
+        await assertLotInFarm(tx, farmId, dto.herdLotId, {
+          requireActive: true,
         });
-        if (!lot) throw new NotFoundException('Lote não encontrado');
       }
 
       const diagnosis = await tx.pregnancyDiagnosis.create({
@@ -540,7 +624,7 @@ export class HerdService {
     farmId: string,
     dto: CreateWeighingDto,
   ) {
-    await this.getLot(farmId, dto.herdLotId);
+    await this.getLot(farmId, dto.herdLotId, true);
     return this.prisma.lotWeighing.create({
       data: {
         farmId,
@@ -553,11 +637,16 @@ export class HerdService {
     });
   }
 
-  private async getLot(farmId: string, id: string) {
+  private async getLot(farmId: string, id: string, requireActive = false) {
     const lot = await this.prisma.herdLot.findFirst({
       where: { id, farmId, deletedAt: null },
     });
     if (!lot) throw new NotFoundException('Lote não encontrado');
+    if (requireActive && lot.status !== 'ATIVO') {
+      throw new BadRequestException(
+        'Este lote está encerrado. Reative-o para fazer novos lançamentos.',
+      );
+    }
     return lot;
   }
 }
