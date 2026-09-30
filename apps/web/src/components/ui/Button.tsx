@@ -1,6 +1,6 @@
 "use client";
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -17,6 +17,8 @@ const styles: Record<Variant, string> = {
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;
+  /** React 19: `ref` é uma prop comum em componentes de função. */
+  ref?: Ref<HTMLButtonElement>;
   children: ReactNode;
 };
 

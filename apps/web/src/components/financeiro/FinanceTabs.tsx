@@ -24,7 +24,7 @@ export function ExpensesTab({
   expenses: Expense[];
   categories: ExpenseCategory[];
   submitting: boolean;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<unknown>;
 }) {
   return (
     <>
@@ -76,7 +76,7 @@ export function RevenuesTab({
 }: {
   revenues: Revenue[];
   submitting: boolean;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<unknown>;
 }) {
   return (
     <>

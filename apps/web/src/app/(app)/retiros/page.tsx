@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import type { Retiro } from "@/lib/types";
 import {
   Alert,
@@ -22,7 +23,7 @@ export default function RetirosPage() {
   const [showInactive, setShowInactive] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,40 +41,31 @@ export default function RetirosPage() {
     void load();
   }, [load]);
 
-  async function save(
-    e: FormEvent<HTMLFormElement>,
-    request: { path: string; method: "POST" | "PATCH" },
-    fallbackError: string,
-  ): Promise<boolean> {
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget; // capturar antes do await
-    const body = readRetiroForm(new FormData(form));
-    try {
-      await api(request.path, {
-        method: request.method,
-        body: JSON.stringify(body),
-      });
-      form.reset();
-      await load();
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : fallbackError);
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   async function onCreate(e: FormEvent<HTMLFormElement>) {
-    await save(e, { path: "/retiros", method: "POST" }, "Erro ao criar retiro");
+    await submit(
+      e,
+      async (fd) => {
+        await api("/retiros", {
+          method: "POST",
+          body: JSON.stringify(readRetiroForm(fd)),
+        });
+        await load();
+      },
+      "Erro ao criar retiro",
+    );
   }
 
   async function onEdit(e: FormEvent<HTMLFormElement>) {
     if (!editing) return;
-    const ok = await save(
+    const ok = await submit(
       e,
-      { path: `/retiros/${editing.id}`, method: "PATCH" },
+      async (fd) => {
+        await api(`/retiros/${editing.id}`, {
+          method: "PATCH",
+          body: JSON.stringify(readRetiroForm(fd)),
+        });
+        await load();
+      },
       "Erro ao editar retiro",
     );
     if (ok) setEditing(null);

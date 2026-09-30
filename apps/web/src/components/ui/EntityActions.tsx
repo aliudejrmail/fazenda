@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 export type EntityActionsProps = {
   /** Endpoint do registro, ex.: `/retiros/abc`. */
@@ -45,6 +46,7 @@ export function EntityActions({
   onError,
 }: EntityActionsProps) {
   const { selectedFarm } = useAuth();
+  const confirm = useConfirm();
   const [busy, setBusy] = useState(false);
 
   if (selectedFarm?.role === "VIEWER") return null;
@@ -64,10 +66,20 @@ export function EntityActions({
   }
 
   async function toggleActive() {
-    const message = active
-      ? `Inativar ${noun} "${name}"?\n\n${inactivateEffect}`
-      : `Reativar ${noun} "${name}"?`;
-    if (!confirm(message)) return;
+    const ok = await confirm(
+      active
+        ? {
+            title: `Inativar ${noun}?`,
+            message: `${name}\n\n${inactivateEffect}`,
+            confirmLabel: "Inativar",
+          }
+        : {
+            title: `Reativar ${noun}?`,
+            message: name,
+            confirmLabel: "Reativar",
+          },
+    );
+    if (!ok) return;
     await run(async () => {
       await api(path, {
         method: "PATCH",
@@ -78,12 +90,13 @@ export function EntityActions({
   }
 
   async function remove() {
-    if (
-      !confirm(
-        `Excluir definitivamente ${noun} "${name}"?\n\nEsta ação não pode ser desfeita.`,
-      )
-    )
-      return;
+    const ok = await confirm({
+      title: `Excluir ${noun}?`,
+      message: `${name}\n\nA exclusão é definitiva e não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      tone: "danger",
+    });
+    if (!ok) return;
     await run(async () => {
       await api(path, { method: "DELETE" });
       await onDeleted();

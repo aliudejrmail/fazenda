@@ -11,6 +11,7 @@ import type {
   ReplacementRecord,
   Retiro,
 } from "@/lib/types";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import { Alert, PageHeader } from "@/components/ui/LayoutBits";
 import { Tabs } from "@/components/ui/Table";
 import {
@@ -38,7 +39,7 @@ export default function ReprodutivoPage() {
   const [culls, setCulls] = useState<CullRecord[]>([]);
   const [replacements, setReplacements] = useState<ReplacementRecord[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -68,22 +69,19 @@ export default function ReprodutivoPage() {
     void load();
   }, [load]);
 
-  async function submit(
+  function submit(
     path: string,
     body: Record<string, unknown>,
     form: HTMLFormElement,
   ) {
-    setSubmitting(true);
-    setError("");
-    try {
-      await api(path, { method: "POST", body: JSON.stringify(body) });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
-    } finally {
-      setSubmitting(false);
-    }
+    return run(
+      form,
+      async () => {
+        await api(path, { method: "POST", body: JSON.stringify(body) });
+        await load();
+      },
+      "Erro ao salvar",
+    );
   }
 
   return (

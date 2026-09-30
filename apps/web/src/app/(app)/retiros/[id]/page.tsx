@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import type { RetiroSummary } from "@/lib/types";
 import {
   HERD_CATEGORY_LABELS,
@@ -37,7 +38,7 @@ export default function RetiroDetailPage() {
   const [data, setData] = useState<RetiroSummary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
   const [panel, setPanel] = useState<"none" | "birth" | "mortality" | "edit">(
     "none",
   );
@@ -59,74 +60,62 @@ export default function RetiroDetailPage() {
   }, [load]);
 
   async function onBirth(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const fd = new FormData(e.currentTarget);
-    try {
-      await api("/herd/births", {
-        method: "POST",
-        body: JSON.stringify({
-          retiroId: id,
-          date: String(fd.get("date")),
-          matricesParidas: Number(fd.get("matricesParidas")),
-          bezerros: Number(fd.get("bezerros")),
-          bezerras: Number(fd.get("bezerras")),
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      setPanel("none");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar nascimento");
-    } finally {
-      setSubmitting(false);
-    }
+    const ok = await submit(
+      e,
+      async (fd) => {
+        await api("/herd/births", {
+          method: "POST",
+          body: JSON.stringify({
+            retiroId: id,
+            date: String(fd.get("date")),
+            matricesParidas: Number(fd.get("matricesParidas")),
+            bezerros: Number(fd.get("bezerros")),
+            bezerras: Number(fd.get("bezerras")),
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar nascimento",
+    );
+    if (ok) setPanel("none");
   }
 
   async function onMortality(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const fd = new FormData(e.currentTarget);
-    try {
-      await api("/herd/mortalities", {
-        method: "POST",
-        body: JSON.stringify({
-          retiroId: id,
-          date: String(fd.get("date")),
-          quantity: Number(fd.get("quantity")),
-          category: String(fd.get("category") || "") || undefined,
-          cause: String(fd.get("cause") || "") || undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      setPanel("none");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao registrar mortalidade");
-    } finally {
-      setSubmitting(false);
-    }
+    const ok = await submit(
+      e,
+      async (fd) => {
+        await api("/herd/mortalities", {
+          method: "POST",
+          body: JSON.stringify({
+            retiroId: id,
+            date: String(fd.get("date")),
+            quantity: Number(fd.get("quantity")),
+            category: String(fd.get("category") || "") || undefined,
+            cause: String(fd.get("cause") || "") || undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao registrar mortalidade",
+    );
+    if (ok) setPanel("none");
   }
 
   async function onEditHerd(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const body = readRetiroForm(new FormData(e.currentTarget));
-    try {
-      await api(`/retiros/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(body),
-      });
-      setPanel("none");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao editar retiro");
-    } finally {
-      setSubmitting(false);
-    }
+    const ok = await submit(
+      e,
+      async (fd) => {
+        await api(`/retiros/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify(readRetiroForm(fd)),
+        });
+        await load();
+      },
+      "Erro ao editar retiro",
+    );
+    if (ok) setPanel("none");
   }
 
   if (loading && !data) {

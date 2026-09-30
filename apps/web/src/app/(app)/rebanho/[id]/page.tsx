@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import type { FeedRecord, LotDetail } from "@/lib/types";
 import {
   HERD_CATEGORY_LABELS,
@@ -39,7 +40,7 @@ export default function LoteDetailPage() {
   const [feedRecords, setFeedRecords] = useState<FeedRecord[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
   const [panel, setPanel] = useState<"none" | "weighing" | "edit">("none");
 
   const load = useCallback(async () => {
@@ -64,57 +65,49 @@ export default function LoteDetailPage() {
   }, [load]);
 
   async function onWeighing(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const fd = new FormData(e.currentTarget);
-    try {
-      await api("/herd/weighings", {
-        method: "POST",
-        body: JSON.stringify({
-          herdLotId: id,
-          date: String(fd.get("date")),
-          avgWeightKg: Number(fd.get("avgWeightKg")),
-          quantity: Number(fd.get("quantity")),
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      setPanel("none");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao registrar pesagem");
-    } finally {
-      setSubmitting(false);
-    }
+    const ok = await submit(
+      e,
+      async (fd) => {
+        await api("/herd/weighings", {
+          method: "POST",
+          body: JSON.stringify({
+            herdLotId: id,
+            date: String(fd.get("date")),
+            avgWeightKg: Number(fd.get("avgWeightKg")),
+            quantity: Number(fd.get("quantity")),
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao registrar pesagem",
+    );
+    if (ok) setPanel("none");
   }
 
   async function onEdit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const fd = new FormData(e.currentTarget);
-    const entryWeight = String(fd.get("entryWeightKg") || "");
-    const targetWeight = String(fd.get("targetWeightKg") || "");
-    try {
-      await api(`/herd/lots/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          sex: String(fd.get("sex")),
-          quantity: Number(fd.get("quantity")),
-          entryDate: String(fd.get("entryDate") || "") || undefined,
-          entryWeightKg: entryWeight ? Number(entryWeight) : undefined,
-          targetWeightKg: targetWeight ? Number(targetWeight) : undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      setPanel("none");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao editar lote");
-    } finally {
-      setSubmitting(false);
-    }
+    const ok = await submit(
+      e,
+      async (fd) => {
+        const entryWeight = String(fd.get("entryWeightKg") || "");
+        const targetWeight = String(fd.get("targetWeightKg") || "");
+        await api(`/herd/lots/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            name: String(fd.get("name")),
+            sex: String(fd.get("sex")),
+            quantity: Number(fd.get("quantity")),
+            entryDate: String(fd.get("entryDate") || "") || undefined,
+            entryWeightKg: entryWeight ? Number(entryWeight) : undefined,
+            targetWeightKg: targetWeight ? Number(targetWeight) : undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao editar lote",
+    );
+    if (ok) setPanel("none");
   }
 
   if (loading && !data) {

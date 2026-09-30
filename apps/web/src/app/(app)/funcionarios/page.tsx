@@ -19,13 +19,14 @@ import {
   PageHeader,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function FuncionariosPage() {
   const [tab, setTab] = useState("employees");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [payroll, setPayroll] = useState<Payroll[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -46,56 +47,44 @@ export default function FuncionariosPage() {
   }, [load]);
 
   async function onEmployee(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/employees", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          role: String(fd.get("role") || "") || undefined,
-          phone: String(fd.get("phone") || "") || undefined,
-          hireDate: String(fd.get("hireDate") || "") || undefined,
-          salary: fd.get("salary") ? Number(fd.get("salary")) : undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar funcionário");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/employees", {
+          method: "POST",
+          body: JSON.stringify({
+            name: String(fd.get("name")),
+            role: String(fd.get("role") || "") || undefined,
+            phone: String(fd.get("phone") || "") || undefined,
+            hireDate: String(fd.get("hireDate") || "") || undefined,
+            salary: fd.get("salary") ? Number(fd.get("salary")) : undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar funcionário",
+    );
   }
 
   async function onPayroll(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/employees/payroll", {
-        method: "POST",
-        body: JSON.stringify({
-          employeeId: String(fd.get("employeeId")),
-          referenceMonth: String(fd.get("referenceMonth")),
-          date: String(fd.get("date")),
-          amount: Number(fd.get("amount")),
-          description: String(fd.get("description") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar folha");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/employees/payroll", {
+          method: "POST",
+          body: JSON.stringify({
+            employeeId: String(fd.get("employeeId")),
+            referenceMonth: String(fd.get("referenceMonth")),
+            date: String(fd.get("date")),
+            amount: Number(fd.get("amount")),
+            description: String(fd.get("description") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar folha",
+    );
   }
 
   return (

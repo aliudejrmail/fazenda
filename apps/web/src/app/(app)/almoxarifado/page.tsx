@@ -22,13 +22,14 @@ import {
   PageHeader,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function AlmoxarifadoPage() {
   const [tab, setTab] = useState("items");
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -49,61 +50,49 @@ export default function AlmoxarifadoPage() {
   }, [load]);
 
   async function onItem(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/inventory/items", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          category: String(fd.get("category")),
-          unit: String(fd.get("unit")),
-          quantity: fd.get("quantity") ? Number(fd.get("quantity")) : undefined,
-          minQuantity: fd.get("minQuantity")
-            ? Number(fd.get("minQuantity"))
-            : undefined,
-          avgUnitCost: fd.get("avgUnitCost")
-            ? Number(fd.get("avgUnitCost"))
-            : undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar item");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/inventory/items", {
+          method: "POST",
+          body: JSON.stringify({
+            name: String(fd.get("name")),
+            category: String(fd.get("category")),
+            unit: String(fd.get("unit")),
+            quantity: fd.get("quantity") ? Number(fd.get("quantity")) : undefined,
+            minQuantity: fd.get("minQuantity")
+              ? Number(fd.get("minQuantity"))
+              : undefined,
+            avgUnitCost: fd.get("avgUnitCost")
+              ? Number(fd.get("avgUnitCost"))
+              : undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar item",
+    );
   }
 
   async function onMovement(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/inventory/movements", {
-        method: "POST",
-        body: JSON.stringify({
-          itemId: String(fd.get("itemId")),
-          type: String(fd.get("type")),
-          quantity: Number(fd.get("quantity")),
-          date: String(fd.get("date")),
-          unitCost: fd.get("unitCost") ? Number(fd.get("unitCost")) : undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar movimento");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/inventory/movements", {
+          method: "POST",
+          body: JSON.stringify({
+            itemId: String(fd.get("itemId")),
+            type: String(fd.get("type")),
+            quantity: Number(fd.get("quantity")),
+            date: String(fd.get("date")),
+            unitCost: fd.get("unitCost") ? Number(fd.get("unitCost")) : undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar movimento",
+    );
   }
 
   return (

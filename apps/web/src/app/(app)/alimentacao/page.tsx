@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 type IngredientRow = { inventoryItemId: string; percent: string };
 
@@ -40,7 +42,8 @@ export default function AlimentacaoPage() {
   const [lots, setLots] = useState<HerdLot[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
+  const confirm = useConfirm();
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
     { inventoryItemId: "", percent: "" },
   ]);
@@ -78,96 +81,85 @@ export default function AlimentacaoPage() {
   }, [load]);
 
   async function onCreateDiet(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
     const rows = ingredients.filter((r) => r.inventoryItemId && r.percent);
-    try {
-      await api("/feeding/diets", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          description: String(fd.get("description") || "") || undefined,
-          kgPerAnimal: Number(fd.get("kgPerAnimal")),
-          ingredients: rows.map((r) => ({
-            inventoryItemId: r.inventoryItemId,
-            percent: Number(r.percent),
-          })),
-        }),
-      });
-      form.reset();
-      setIngredients([{ inventoryItemId: "", percent: "" }]);
-      await load();
-      setTab("dietas");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar dieta");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/feeding/diets", {
+          method: "POST",
+          body: JSON.stringify({
+            name: String(fd.get("name")),
+            description: String(fd.get("description") || "") || undefined,
+            kgPerAnimal: Number(fd.get("kgPerAnimal")),
+            ingredients: rows.map((r) => ({
+              inventoryItemId: r.inventoryItemId,
+              percent: Number(r.percent),
+            })),
+          }),
+        });
+        setIngredients([{ inventoryItemId: "", percent: "" }]);
+        await load();
+        setTab("dietas");
+      },
+      "Erro ao criar dieta",
+    );
   }
 
   async function onAssign(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const kg = String(fd.get("kgPerAnimal") || "");
-    try {
-      await api("/feeding/assignments", {
-        method: "POST",
-        body: JSON.stringify({
-          herdLotId: String(fd.get("herdLotId")),
-          dietId: String(fd.get("dietId")),
-          startDate: String(fd.get("startDate")),
-          kgPerAnimal: kg ? Number(kg) : undefined,
-        }),
-      });
-      form.reset();
-      await load();
-      setTab("atribuicoes");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao atribuir dieta");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        const kg = String(fd.get("kgPerAnimal") || "");
+        await api("/feeding/assignments", {
+          method: "POST",
+          body: JSON.stringify({
+            herdLotId: String(fd.get("herdLotId")),
+            dietId: String(fd.get("dietId")),
+            startDate: String(fd.get("startDate")),
+            kgPerAnimal: kg ? Number(kg) : undefined,
+          }),
+        });
+        await load();
+        setTab("atribuicoes");
+      },
+      "Erro ao atribuir dieta",
+    );
   }
 
   async function onRecord(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const animals = String(fd.get("animals") || "");
-    const kg = String(fd.get("kgPerAnimal") || "");
-    const dietId = String(fd.get("dietId") || "");
-    try {
-      await api("/feeding/records", {
-        method: "POST",
-        body: JSON.stringify({
-          herdLotId: String(fd.get("herdLotId")),
-          dietId: dietId || undefined,
-          date: String(fd.get("date")),
-          animals: animals ? Number(animals) : undefined,
-          kgPerAnimal: kg ? Number(kg) : undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-      setTab("consumo");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao registrar consumo");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        const animals = String(fd.get("animals") || "");
+        const kg = String(fd.get("kgPerAnimal") || "");
+        const dietId = String(fd.get("dietId") || "");
+        await api("/feeding/records", {
+          method: "POST",
+          body: JSON.stringify({
+            herdLotId: String(fd.get("herdLotId")),
+            dietId: dietId || undefined,
+            date: String(fd.get("date")),
+            animals: animals ? Number(animals) : undefined,
+            kgPerAnimal: kg ? Number(kg) : undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+        setTab("consumo");
+      },
+      "Erro ao registrar consumo",
+    );
   }
 
   async function onDeleteDiet(id: string) {
-    if (!confirm("Excluir esta dieta?")) return;
+    const diet = diets.find((d) => d.id === id);
+    const ok = await confirm({
+      title: "Excluir dieta?",
+      message: `${diet?.name ?? "Esta dieta"}\n\nA exclusão é definitiva e não pode ser desfeita.`,
+      confirmLabel: "Excluir",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
       await api(`/feeding/diets/${id}`, { method: "DELETE" });
       await load();

@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/LayoutBits";
 import { Table, Td } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function FazendasPage() {
   const { selectedFarmId, selectFarm, refreshFarms } = useAuth();
   const router = useRouter();
   const [farms, setFarms] = useState<Farm[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Farm | null>(null);
 
@@ -42,57 +43,46 @@ export default function FazendasPage() {
     void load();
   }, [load]);
 
+  const farmBody = (fd: FormData) =>
+    JSON.stringify({
+      name: String(fd.get("name")),
+      city: String(fd.get("city") || "") || undefined,
+      state: String(fd.get("state") || "") || undefined,
+    });
+
   async function onCreate(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      const farm = await api<Farm>("/farms", {
-        method: "POST",
-        skipFarm: true,
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          city: String(fd.get("city") || "") || undefined,
-          state: String(fd.get("state") || "") || undefined,
-        }),
-      });
-      selectFarm(farm.id);
-      form.reset();
-      await load();
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar fazenda");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        const farm = await api<Farm>("/farms", {
+          method: "POST",
+          skipFarm: true,
+          body: farmBody(fd),
+        });
+        selectFarm(farm.id);
+        await load();
+        router.push("/");
+      },
+      "Erro ao criar fazenda",
+    );
   }
 
   async function onUpdate(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!editing) return;
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api<Farm>(`/farms/${editing.id}`, {
-        method: "PATCH",
-        skipFarm: true,
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          city: String(fd.get("city") || "") || undefined,
-          state: String(fd.get("state") || "") || undefined,
-        }),
-      });
-      setEditing(null);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao editar fazenda");
-    } finally {
-      setSubmitting(false);
-    }
+    const target = editing;
+    if (!target) return;
+    await submit(
+      e,
+      async (fd) => {
+        await api<Farm>(`/farms/${target.id}`, {
+          method: "PATCH",
+          skipFarm: true,
+          body: farmBody(fd),
+        });
+        setEditing(null);
+        await load();
+      },
+      "Erro ao editar fazenda",
+    );
   }
 
   function onSelect(id: string) {

@@ -139,7 +139,7 @@ export function FormCard({
 }: {
   title: string;
   children: ReactNode;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<unknown>;
   submitting?: boolean;
   submitLabel?: string;
 }) {

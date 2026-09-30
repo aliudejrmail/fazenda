@@ -21,6 +21,7 @@ import {
   PageHeader,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function FrotaPage() {
   const [tab, setTab] = useState("vehicles");
@@ -28,7 +29,7 @@ export default function FrotaPage() {
   const [fuel, setFuel] = useState<FuelRecord[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceRecord[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -54,18 +55,15 @@ export default function FrotaPage() {
     return vehicles.find((v) => v.id === id)?.name ?? id;
   }
 
-  async function post(path: string, body: Record<string, unknown>, form: HTMLFormElement) {
-    setSubmitting(true);
-    setError("");
-    try {
-      await api(path, { method: "POST", body: JSON.stringify(body) });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
-    } finally {
-      setSubmitting(false);
-    }
+  function post(path: string, body: Record<string, unknown>, form: HTMLFormElement) {
+    return run(
+      form,
+      async () => {
+        await api(path, { method: "POST", body: JSON.stringify(body) });
+        await load();
+      },
+      "Erro ao salvar",
+    );
   }
 
   return (

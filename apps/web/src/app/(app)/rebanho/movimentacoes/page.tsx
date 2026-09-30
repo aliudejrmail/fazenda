@@ -22,6 +22,7 @@ import {
   PageHeader,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function MovimentacoesPage() {
   const [tab, setTab] = useState("movements");
@@ -29,7 +30,7 @@ export default function MovimentacoesPage() {
   const [movements, setMovements] = useState<MovementRecord[]>([]);
   const [weighings, setWeighings] = useState<WeighingRecord[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -57,62 +58,50 @@ export default function MovimentacoesPage() {
   }
 
   async function onMovement(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/herd/movements", {
-        method: "POST",
-        body: JSON.stringify({
-          type: String(fd.get("type")),
-          date: String(fd.get("date")),
-          quantity: Number(fd.get("quantity")),
-          fromLotId: String(fd.get("fromLotId") || "") || undefined,
-          toLotId: String(fd.get("toLotId") || "") || undefined,
-          toSystem: String(fd.get("toSystem") || "") || undefined,
-          unitPrice: fd.get("unitPrice") ? Number(fd.get("unitPrice")) : undefined,
-          totalPrice: fd.get("totalPrice") ? Number(fd.get("totalPrice")) : undefined,
-          weightArroba: fd.get("weightArroba")
-            ? Number(fd.get("weightArroba"))
-            : undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/herd/movements", {
+          method: "POST",
+          body: JSON.stringify({
+            type: String(fd.get("type")),
+            date: String(fd.get("date")),
+            quantity: Number(fd.get("quantity")),
+            fromLotId: String(fd.get("fromLotId") || "") || undefined,
+            toLotId: String(fd.get("toLotId") || "") || undefined,
+            toSystem: String(fd.get("toSystem") || "") || undefined,
+            unitPrice: fd.get("unitPrice") ? Number(fd.get("unitPrice")) : undefined,
+            totalPrice: fd.get("totalPrice") ? Number(fd.get("totalPrice")) : undefined,
+            weightArroba: fd.get("weightArroba")
+              ? Number(fd.get("weightArroba"))
+              : undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar",
+    );
   }
 
   async function onWeighing(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/herd/weighings", {
-        method: "POST",
-        body: JSON.stringify({
-          herdLotId: String(fd.get("herdLotId")),
-          date: String(fd.get("date")),
-          avgWeightKg: Number(fd.get("avgWeightKg")),
-          quantity: Number(fd.get("quantity")),
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        await api("/herd/weighings", {
+          method: "POST",
+          body: JSON.stringify({
+            herdLotId: String(fd.get("herdLotId")),
+            date: String(fd.get("date")),
+            avgWeightKg: Number(fd.get("avgWeightKg")),
+            quantity: Number(fd.get("quantity")),
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao salvar",
+    );
   }
 
   const lotOpts = lots.map((l) => (

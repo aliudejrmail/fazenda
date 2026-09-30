@@ -13,7 +13,7 @@ type Props = {
   /** Presente = modo edição. */
   campaign?: Campaign;
   submitting: boolean;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<void>;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void | Promise<unknown>;
   onCancel?: () => void;
 };
 

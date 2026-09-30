@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/LayoutBits";
 import { Table, Td } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
+import { useFormSubmit } from "@/lib/use-form-submit";
 
 export default function RebanhoClient() {
   const searchParams = useSearchParams();
@@ -32,7 +34,8 @@ export default function RebanhoClient() {
   const [lots, setLots] = useState<HerdLot[]>([]);
   const [retiros, setRetiros] = useState<Retiro[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, submit } = useFormSubmit(setError);
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -58,44 +61,44 @@ export default function RebanhoClient() {
   }, [load]);
 
   async function onCreate(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    const retiroId = String(fd.get("retiroId") || "");
-    const entryWeight = String(fd.get("entryWeightKg") || "");
-    const targetWeight = String(fd.get("targetWeightKg") || "");
-    try {
-      await api("/herd/lots", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          category: String(fd.get("category")),
-          system: String(fd.get("system")),
-          sex: String(fd.get("sex") || "MISTO"),
-          quantity: Number(fd.get("quantity")),
-          entryDate: String(fd.get("entryDate") || "") || undefined,
-          entryWeightKg: entryWeight ? Number(entryWeight) : undefined,
-          targetWeightKg: targetWeight ? Number(targetWeight) : undefined,
-          trackingMode: String(fd.get("trackingMode") || "LOTE"),
-          retiroId: retiroId || undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao criar lote");
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(
+      e,
+      async (fd) => {
+        const retiroId = String(fd.get("retiroId") || "");
+        const entryWeight = String(fd.get("entryWeightKg") || "");
+        const targetWeight = String(fd.get("targetWeightKg") || "");
+        await api("/herd/lots", {
+          method: "POST",
+          body: JSON.stringify({
+            name: String(fd.get("name")),
+            category: String(fd.get("category")),
+            system: String(fd.get("system")),
+            sex: String(fd.get("sex") || "MISTO"),
+            quantity: Number(fd.get("quantity")),
+            entryDate: String(fd.get("entryDate") || "") || undefined,
+            entryWeightKg: entryWeight ? Number(entryWeight) : undefined,
+            targetWeightKg: targetWeight ? Number(targetWeight) : undefined,
+            trackingMode: String(fd.get("trackingMode") || "LOTE"),
+            retiroId: retiroId || undefined,
+            notes: String(fd.get("notes") || "") || undefined,
+          }),
+        });
+        await load();
+      },
+      "Erro ao criar lote",
+    );
   }
 
-  async function onDelete(id: string) {
-    if (!confirm("Excluir este lote?")) return;
+  async function onDelete(lot: HerdLot) {
+    const ok = await confirm({
+      title: "Excluir lote?",
+      message: `${lot.name}\n\nO lote deixará de aparecer nas listas e nos totais.`,
+      confirmLabel: "Excluir",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
-      await api(`/herd/lots/${id}`, { method: "DELETE" });
+      await api(`/herd/lots/${lot.id}`, { method: "DELETE" });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao excluir");
@@ -223,7 +226,7 @@ export default function RebanhoClient() {
                   <Button
                     type="button"
                     variant="danger"
-                    onClick={() => void onDelete(lot.id)}
+                    onClick={() => void onDelete(lot)}
                   >
                     Excluir
                   </Button>

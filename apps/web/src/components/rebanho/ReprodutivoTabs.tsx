@@ -29,7 +29,7 @@ type SubmitFn = (
   path: string,
   body: Record<string, unknown>,
   form: HTMLFormElement,
-) => Promise<void>;
+) => Promise<boolean> | Promise<void>;
 
 function LotSelect({ lots }: { lots: HerdLot[] }) {
   return (

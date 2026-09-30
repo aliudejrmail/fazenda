@@ -20,6 +20,7 @@ import {
   Stat,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
+import { useFormSubmit } from "@/lib/use-form-submit";
 import { ExpensesTab, RevenuesTab } from "@/components/financeiro/FinanceTabs";
 
 export default function FinanceiroPage() {
@@ -31,7 +32,7 @@ export default function FinanceiroPage() {
   const [revenues, setRevenues] = useState<Revenue[]>([]);
   const [result, setResult] = useState<PeriodResult | null>(null);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useFormSubmit(setError);
 
   const load = useCallback(async () => {
     setError("");
@@ -59,22 +60,19 @@ export default function FinanceiroPage() {
     void load();
   }, [load]);
 
-  async function post(
+  function post(
     path: string,
     body: Record<string, unknown>,
     form: HTMLFormElement,
   ) {
-    setSubmitting(true);
-    setError("");
-    try {
-      await api(path, { method: "POST", body: JSON.stringify(body) });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
-    } finally {
-      setSubmitting(false);
-    }
+    return run(
+      form,
+      async () => {
+        await api(path, { method: "POST", body: JSON.stringify(body) });
+        await load();
+      },
+      "Erro ao salvar",
+    );
   }
 
   return (
