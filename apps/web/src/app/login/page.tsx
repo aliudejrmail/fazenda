@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/LayoutBits";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
-import { APP_NAME } from "@/lib/brand";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 
 export default function LoginPage() {
   const { login, hasToken, loading } = useAuth();
@@ -71,7 +71,7 @@ export default function LoginPage() {
             {APP_NAME}
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/75">
-            Gestão pecuária com visão clara do retiro ao confinamento —
+            {APP_TAGLINE} com visão clara do retiro ao confinamento —
             lotes, prenhez, alimentação e finanças no mesmo ritmo da operação.
           </p>
         </div>

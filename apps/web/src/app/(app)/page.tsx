@@ -135,8 +135,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Painel pecuário"
-        highlight="pecuário"
+        title="Painel Pecuário"
+        highlight="Pecuário"
         description="Visão operacional da fazenda selecionada"
         actions={
           <label className="flex w-full flex-wrap items-center gap-2 rounded-xl bg-[var(--green)] px-3.5 py-2.5 text-sm text-[var(--cream)] shadow-[var(--shadow-sm)] sm:inline-flex sm:w-auto">
