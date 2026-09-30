@@ -347,6 +347,8 @@ export type Vehicle = {
   plate?: string | null;
   year?: number | null;
   active?: boolean;
+  /** Sem abastecimento/manutenção: pode ser excluído. */
+  canDelete?: boolean;
   notes?: string | null;
 };
 

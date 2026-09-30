@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { assertVehicleInFarm } from '../common/utils/farm-scope';
@@ -9,15 +13,41 @@ import {
   UpdateVehicleDto,
 } from './dto/fleet.dto';
 
+const LINK_COUNT = {
+  select: { fuelRecords: true, maintenances: true },
+} satisfies Prisma.VehicleCountOutputTypeDefaultArgs;
+
+type LinkCount = { fuelRecords: number; maintenances: number };
+
+function describeLinks(count: LinkCount) {
+  const parts: string[] = [];
+  if (count.fuelRecords > 0) {
+    parts.push(`${count.fuelRecords} abastecimento(s)`);
+  }
+  if (count.maintenances > 0) {
+    parts.push(`${count.maintenances} manutenção(ões)`);
+  }
+  return parts.join(' e ');
+}
+
+function totalLinks(count: LinkCount) {
+  return count.fuelRecords + count.maintenances;
+}
+
 @Injectable()
 export class FleetService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listVehicles(farmId: string) {
-    return this.prisma.vehicle.findMany({
+  async listVehicles(farmId: string) {
+    const vehicles = await this.prisma.vehicle.findMany({
       where: { farmId, deletedAt: null },
+      include: { _count: LINK_COUNT },
       orderBy: { name: 'asc' },
     });
+    return vehicles.map((v) => ({
+      ...v,
+      canDelete: totalLinks(v._count) === 0,
+    }));
   }
 
   createVehicle(farmId: string, dto: CreateVehicleDto) {
@@ -34,11 +64,23 @@ export class FleetService {
   }
 
   async updateVehicle(farmId: string, id: string, dto: UpdateVehicleDto) {
-    const vehicle = await this.prisma.vehicle.findFirst({
-      where: { id, farmId, deletedAt: null },
-    });
-    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+    await this.findOne(farmId, id);
     return this.prisma.vehicle.update({ where: { id }, data: dto });
+  }
+
+  /**
+   * Exclui apenas veículos sem abastecimento nem manutenção.
+   * Com histórico, o caminho é inativar (PATCH `active: false`).
+   */
+  async removeVehicle(farmId: string, id: string) {
+    const vehicle = await this.findOne(farmId, id);
+    if (totalLinks(vehicle._count) > 0) {
+      throw new ConflictException(
+        `Não é possível excluir: o veículo possui ${describeLinks(vehicle._count)}. Inative-o para preservar o histórico.`,
+      );
+    }
+    await this.prisma.vehicle.delete({ where: { id } });
+    return { deleted: true };
   }
 
   listFuel(farmId: string) {
@@ -52,7 +94,9 @@ export class FleetService {
   async createFuel(farmId: string, dto: CreateFuelDto) {
     const totalCost = new Prisma.Decimal(dto.liters).mul(dto.unitPrice);
     return this.prisma.$transaction(async (tx) => {
-      await assertVehicleInFarm(tx, farmId, dto.vehicleId);
+      await assertVehicleInFarm(tx, farmId, dto.vehicleId, {
+        requireActive: true,
+      });
       const record = await tx.fuelRecord.create({
         data: {
           farmId,
@@ -91,7 +135,9 @@ export class FleetService {
 
   async createMaintenance(farmId: string, dto: CreateMaintenanceDto) {
     return this.prisma.$transaction(async (tx) => {
-      await assertVehicleInFarm(tx, farmId, dto.vehicleId);
+      await assertVehicleInFarm(tx, farmId, dto.vehicleId, {
+        requireActive: true,
+      });
       const record = await tx.maintenanceRecord.create({
         data: {
           farmId,
@@ -116,5 +162,14 @@ export class FleetService {
 
       return record;
     });
+  }
+
+  private async findOne(farmId: string, id: string) {
+    const vehicle = await this.prisma.vehicle.findFirst({
+      where: { id, farmId, deletedAt: null },
+      include: { _count: LINK_COUNT },
+    });
+    if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+    return vehicle;
   }
 }

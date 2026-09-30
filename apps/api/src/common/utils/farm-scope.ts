@@ -48,11 +48,17 @@ export async function assertVehicleInFarm(
   db: ScopeDb,
   farmId: string,
   id?: string | null,
+  options: { requireActive?: boolean } = {},
 ) {
   if (!id) return null;
   const vehicle = await db.vehicle.findFirst({
     where: { id, farmId, deletedAt: null },
   });
   if (!vehicle) throw new NotFoundException('Veículo não encontrado');
+  if (options.requireActive && !vehicle.active) {
+    throw new BadRequestException(
+      'Este veículo está inativo. Reative-o para registrar abastecimento ou manutenção.',
+    );
+  }
   return vehicle;
 }

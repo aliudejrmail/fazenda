@@ -4,12 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { FuelRecord, MaintenanceRecord, Vehicle } from "@/lib/types";
 import {
-  VEHICLE_TYPE_LABELS,
   formatCurrency,
   formatDate,
   formatNumber,
-  labelOf,
-  optionsFrom,
   todayISO,
 } from "@/lib/format";
 import { Input, Select, Textarea } from "@/components/ui/Field";
@@ -22,6 +19,7 @@ import {
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
 import { useFormSubmit } from "@/lib/use-form-submit";
+import { VehiclesTab } from "@/components/frota/VehiclesTab";
 
 export default function FrotaPage() {
   const [tab, setTab] = useState("vehicles");
@@ -66,6 +64,8 @@ export default function FrotaPage() {
     );
   }
 
+  const activeVehicles = vehicles.filter((v) => v.active !== false);
+
   return (
     <div>
       <PageHeader title="Frota" description="Veículos, combustível e manutenção" />
@@ -86,53 +86,7 @@ export default function FrotaPage() {
       />
 
       {tab === "vehicles" ? (
-        <>
-          <FormCard
-            title="Novo veículo"
-            submitting={submitting}
-            onSubmit={(e) => {
-              const fd = new FormData(e.currentTarget);
-              return post(
-                "/fleet/vehicles",
-                {
-                  name: String(fd.get("name")),
-                  type: String(fd.get("type")),
-                  plate: String(fd.get("plate") || "") || undefined,
-                  year: fd.get("year") ? Number(fd.get("year")) : undefined,
-                  notes: String(fd.get("notes") || "") || undefined,
-                },
-                e.currentTarget,
-              );
-            }}
-          >
-            <FormGrid>
-              <Input label="Nome" name="name" required minLength={2} />
-              <Select label="Tipo" name="type" required defaultValue="TRATOR">
-                {optionsFrom(VEHICLE_TYPE_LABELS).map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </Select>
-              <Input label="Placa" name="plate" />
-              <Input label="Ano" name="year" type="number" />
-              <Textarea label="Observações" name="notes" />
-            </FormGrid>
-          </FormCard>
-          {vehicles.length === 0 ? (
-            <EmptyState message="Nenhum veículo cadastrado." />
-          ) : (
-            <Table headers={["Nome", "Tipo", "Placa", "Ano", "Ativo"]}>
-              {vehicles.map((v) => (
-                <tr key={v.id}>
-                  <Td className="font-medium">{v.name}</Td>
-                  <Td>{labelOf(VEHICLE_TYPE_LABELS, v.type)}</Td>
-                  <Td>{v.plate ?? "—"}</Td>
-                  <Td>{v.year ?? "—"}</Td>
-                  <Td>{v.active === false ? "Não" : "Sim"}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </>
+        <VehiclesTab vehicles={vehicles} onChanged={load} onError={setError} />
       ) : null}
 
       {tab === "fuel" ? (
@@ -158,7 +112,7 @@ export default function FrotaPage() {
           >
             <FormGrid>
               <Select label="Veículo" name="vehicleId" required>
-                {vehicles.map((v) => (
+                {activeVehicles.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </Select>
@@ -209,7 +163,7 @@ export default function FrotaPage() {
           >
             <FormGrid>
               <Select label="Veículo" name="vehicleId" required>
-                {vehicles.map((v) => (
+                {activeVehicles.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </Select>

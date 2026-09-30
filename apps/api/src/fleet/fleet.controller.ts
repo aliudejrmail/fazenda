@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -44,6 +45,11 @@ export class FleetController {
     @Body() dto: UpdateVehicleDto,
   ) {
     return this.fleetService.updateVehicle(farmId, id, dto);
+  }
+
+  @Delete('vehicles/:id')
+  removeVehicle(@FarmId() farmId: string, @Param('id') id: string) {
+    return this.fleetService.removeVehicle(farmId, id);
   }
 
   @Get('fuel')
