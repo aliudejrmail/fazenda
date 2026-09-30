@@ -207,6 +207,10 @@ export type Vaccine = {
   batchNumber?: string | null;
   /** Validade do lote */
   expiryDate?: string | null;
+  /** Inativa: fora das novas campanhas, histórico preservado. */
+  active?: boolean;
+  /** Sem campanhas: pode ser excluída. */
+  canDelete?: boolean;
   notes?: string | null;
 };
 

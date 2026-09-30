@@ -1,4 +1,6 @@
+import { PartialType } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsNumber,
@@ -33,6 +35,17 @@ export class CreateVaccineDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+/**
+ * Atualização parcial. Campos opcionais aceitam `null` para limpar o valor
+ * (ex.: remover a validade).
+ */
+export class UpdateVaccineDto extends PartialType(CreateVaccineDto) {
+  /** false = inativar; true = reativar */
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
 }
 
 export class CreateCampaignDto {
@@ -75,3 +88,5 @@ export class CreateCampaignDto {
   @IsString()
   notes?: string;
 }
+
+export class UpdateCampaignDto extends PartialType(CreateCampaignDto) {}

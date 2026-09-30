@@ -1,20 +1,23 @@
 import {
-  BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateCampaignDto, CreateVaccineDto } from './dto/vaccine.dto';
+import { CreateVaccineDto, UpdateVaccineDto } from './dto/vaccine.dto';
+import { patchDate, patchText } from './vaccine-utils';
 
 @Injectable()
 export class VaccinesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listVaccines(farmId: string) {
-    return this.prisma.vaccine.findMany({
+  async listVaccines(farmId: string) {
+    const vaccines = await this.prisma.vaccine.findMany({
       where: { farmId },
+      include: { _count: { select: { campaigns: true } } },
       orderBy: { name: 'asc' },
     });
+    return vaccines.map((v) => ({ ...v, canDelete: v._count.campaigns === 0 }));
   }
 
   createVaccine(farmId: string, dto: CreateVaccineDto) {
@@ -22,94 +25,52 @@ export class VaccinesService {
       data: {
         farmId,
         name: dto.name,
-        manufacturer: dto.manufacturer,
-        batchNumber: dto.batchNumber?.trim() || null,
-        expiryDate: dto.expiryDate ? new Date(dto.expiryDate) : null,
-        notes: dto.notes,
+        manufacturer: patchText(dto.manufacturer) ?? null,
+        batchNumber: patchText(dto.batchNumber) ?? null,
+        expiryDate: patchDate(dto.expiryDate) ?? null,
+        notes: patchText(dto.notes) ?? null,
       },
     });
   }
 
-  listCampaigns(farmId: string) {
-    return this.prisma.vaccinationCampaign.findMany({
-      where: { farmId },
-      include: { vaccine: true, herdLot: true },
-      orderBy: { date: 'desc' },
+  async updateVaccine(farmId: string, id: string, dto: UpdateVaccineDto) {
+    await this.findOne(farmId, id);
+    return this.prisma.vaccine.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        manufacturer: patchText(dto.manufacturer),
+        batchNumber: patchText(dto.batchNumber),
+        expiryDate: patchDate(dto.expiryDate),
+        notes: patchText(dto.notes),
+        active: dto.active,
+      },
     });
   }
 
-  async createCampaign(farmId: string, dto: CreateCampaignDto) {
-    const vaccine = await this.prisma.vaccine.findFirst({
-      where: { id: dto.vaccineId, farmId },
+  /**
+   * Exclui apenas vacinas sem campanhas. Com histórico, o caminho é
+   * inativar (PATCH `active: false`).
+   */
+  async removeVaccine(farmId: string, id: string) {
+    const vaccine = await this.findOne(farmId, id);
+    const campaigns = await this.prisma.vaccinationCampaign.count({
+      where: { vaccineId: vaccine.id },
     });
-    if (!vaccine) {
-      throw new NotFoundException('Vacina não encontrada nesta fazenda');
-    }
-
-    // Sem lote/validade informados na campanha, herda os do cadastro da vacina
-    const batchNumber = dto.batchNumber?.trim() || vaccine.batchNumber || null;
-    const expiryDate = dto.expiryDate
-      ? new Date(dto.expiryDate)
-      : vaccine.expiryDate;
-
-    if (expiryDate && expiryDate.getTime() < new Date(dto.date).getTime()) {
-      throw new BadRequestException(
-        'A vacina estava vencida na data da aplicação. Verifique a validade do lote.',
+    if (campaigns > 0) {
+      throw new ConflictException(
+        `Não é possível excluir: a vacina possui ${campaigns} campanha(s). Inative-a para preservar o histórico.`,
       );
     }
-
-    if (dto.herdLotId) {
-      const lot = await this.prisma.herdLot.findFirst({
-        where: { id: dto.herdLotId, farmId, deletedAt: null },
-      });
-      if (!lot) {
-        throw new BadRequestException('Lote inválido para esta fazenda');
-      }
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const campaign = await tx.vaccinationCampaign.create({
-        data: {
-          farmId,
-          vaccineId: dto.vaccineId,
-          date: new Date(dto.date),
-          doses: dto.doses,
-          cost: dto.cost ?? 0,
-          herdLotId: dto.herdLotId,
-          nextDueDate: dto.nextDueDate ? new Date(dto.nextDueDate) : null,
-          batchNumber,
-          expiryDate,
-          notes: dto.notes,
-        },
-        include: { vaccine: true },
-      });
-
-      if (dto.cost && dto.cost > 0) {
-        await tx.expense.create({
-          data: {
-            farmId,
-            costCenter: 'SANIDADE',
-            description: `Campanha vacinal: ${campaign.vaccine.name}`,
-            amount: dto.cost,
-            date: new Date(dto.date),
-          },
-        });
-      }
-
-      return campaign;
-    });
+    await this.prisma.vaccine.delete({ where: { id } });
+    return { deleted: true };
   }
 
-  upcoming(farmId: string) {
-    const today = new Date();
-    return this.prisma.vaccinationCampaign.findMany({
-      where: {
-        farmId,
-        nextDueDate: { gte: today },
-      },
-      include: { vaccine: true, herdLot: true },
-      orderBy: { nextDueDate: 'asc' },
-      take: 20,
+  private async findOne(farmId: string, id: string) {
+    const vaccine = await this.prisma.vaccine.findFirst({
+      where: { id, farmId },
     });
+    if (!vaccine) throw new NotFoundException('Vacina não encontrada');
+    return vaccine;
   }
 }

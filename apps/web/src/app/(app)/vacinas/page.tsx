@@ -1,20 +1,18 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Campaign, HerdLot, Vaccine } from "@/lib/types";
-import { formatCurrency, formatDate, formatNumber, todayISO } from "@/lib/format";
-import { Input, Select, Textarea } from "@/components/ui/Field";
+import { formatDate, formatNumber } from "@/lib/format";
 import {
   Alert,
   EmptyState,
-  FormCard,
-  FormGrid,
   PageHeader,
   Section,
 } from "@/components/ui/LayoutBits";
 import { Table, Tabs, Td } from "@/components/ui/Table";
-import { ExpiryCell } from "@/components/vacinas/ExpiryCell";
+import { VaccinesTab } from "@/components/vacinas/VaccinesTab";
+import { CampaignsTab } from "@/components/vacinas/CampaignsTab";
 
 export default function VacinasPage() {
   const [tab, setTab] = useState("vaccines");
@@ -23,10 +21,6 @@ export default function VacinasPage() {
   const [upcoming, setUpcoming] = useState<Campaign[]>([]);
   const [lots, setLots] = useState<HerdLot[]>([]);
   const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [campaignVaccineId, setCampaignVaccineId] = useState("");
-  const selectedVaccine =
-    vaccines.find((v) => v.id === campaignVaccineId) ?? vaccines[0];
 
   const load = useCallback(async () => {
     setError("");
@@ -49,62 +43,6 @@ export default function VacinasPage() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function onVaccine(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/vaccines", {
-        method: "POST",
-        body: JSON.stringify({
-          name: String(fd.get("name")),
-          manufacturer: String(fd.get("manufacturer") || "") || undefined,
-          batchNumber: String(fd.get("batchNumber") || "").trim() || undefined,
-          expiryDate: String(fd.get("expiryDate") || "") || undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar vacina");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function onCampaign(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-    const form = e.currentTarget;
-    const fd = new FormData(form);
-    try {
-      await api("/vaccines/campaigns", {
-        method: "POST",
-        body: JSON.stringify({
-          vaccineId: String(fd.get("vaccineId")),
-          date: String(fd.get("date")),
-          doses: Number(fd.get("doses")),
-          cost: fd.get("cost") ? Number(fd.get("cost")) : undefined,
-          herdLotId: String(fd.get("herdLotId") || "") || undefined,
-          nextDueDate: String(fd.get("nextDueDate") || "") || undefined,
-          batchNumber: String(fd.get("batchNumber") || "").trim() || undefined,
-          expiryDate: String(fd.get("expiryDate") || "") || undefined,
-          notes: String(fd.get("notes") || "") || undefined,
-        }),
-      });
-      form.reset();
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar campanha");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   return (
     <div>
@@ -141,112 +79,15 @@ export default function VacinasPage() {
       />
 
       {tab === "vaccines" ? (
-        <>
-          <FormCard title="Nova vacina" onSubmit={onVaccine} submitting={submitting}>
-            <FormGrid>
-              <Input label="Nome" name="name" required minLength={2} />
-              <Input label="Fabricante" name="manufacturer" />
-              <Input
-                label="Lote"
-                name="batchNumber"
-                maxLength={60}
-                placeholder="Ex.: L2345"
-              />
-              <Input label="Data de validade" name="expiryDate" type="date" />
-              <Textarea label="Observações" name="notes" />
-            </FormGrid>
-          </FormCard>
-          {vaccines.length === 0 ? (
-            <EmptyState message="Nenhuma vacina cadastrada." />
-          ) : (
-            <Table headers={["Nome", "Fabricante", "Lote", "Validade"]}>
-              {vaccines.map((v) => (
-                <tr key={v.id}>
-                  <Td>{v.name}</Td>
-                  <Td>{v.manufacturer ?? "—"}</Td>
-                  <Td>{v.batchNumber || "—"}</Td>
-                  <Td>
-                    <ExpiryCell value={v.expiryDate} />
-                  </Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </>
+        <VaccinesTab vaccines={vaccines} onChanged={load} onError={setError} />
       ) : (
-        <>
-          <FormCard title="Nova campanha" onSubmit={onCampaign} submitting={submitting}>
-            <FormGrid>
-              <Select
-                label="Vacina"
-                name="vaccineId"
-                required
-                value={selectedVaccine?.id ?? ""}
-                onChange={(e) => setCampaignVaccineId(e.target.value)}
-              >
-                {vaccines.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
-                ))}
-              </Select>
-              <Input label="Data" name="date" type="date" required defaultValue={todayISO()} />
-              <Input label="Doses" name="doses" type="number" min={1} required />
-              <Input label="Custo" name="cost" type="number" step="0.01" />
-              {/* key: remonta os campos ao trocar a vacina, preenchendo do cadastro */}
-              <Input
-                key={`batch-${selectedVaccine?.id}`}
-                label="Lote da vacina"
-                name="batchNumber"
-                maxLength={60}
-                placeholder="Ex.: L2345"
-                defaultValue={selectedVaccine?.batchNumber ?? ""}
-              />
-              <Input
-                key={`expiry-${selectedVaccine?.id}`}
-                label="Validade da vacina"
-                name="expiryDate"
-                type="date"
-                defaultValue={selectedVaccine?.expiryDate?.slice(0, 10) ?? ""}
-              />
-              <Select label="Lote do rebanho" name="herdLotId" defaultValue="">
-                <option value="">—</option>
-                {lots.map((l) => (
-                  <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-              </Select>
-              <Input label="Próxima dose" name="nextDueDate" type="date" />
-              <Textarea label="Observações" name="notes" />
-            </FormGrid>
-          </FormCard>
-          {campaigns.length === 0 ? (
-            <EmptyState message="Nenhuma campanha registrada." />
-          ) : (
-            <Table
-              headers={[
-                "Data",
-                "Vacina",
-                "Lote da vacina",
-                "Validade",
-                "Doses",
-                "Custo",
-                "Próxima",
-              ]}
-            >
-              {campaigns.map((c) => (
-                <tr key={c.id}>
-                  <Td>{formatDate(c.date)}</Td>
-                  <Td>{c.vaccine?.name ?? "—"}</Td>
-                  <Td>{c.batchNumber || "—"}</Td>
-                  <Td>
-                    <ExpiryCell value={c.expiryDate} />
-                  </Td>
-                  <Td>{formatNumber(c.doses)}</Td>
-                  <Td>{c.cost != null ? formatCurrency(c.cost) : "—"}</Td>
-                  <Td>{formatDate(c.nextDueDate)}</Td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </>
+        <CampaignsTab
+          vaccines={vaccines}
+          campaigns={campaigns}
+          lots={lots}
+          onChanged={load}
+          onError={setError}
+        />
       )}
     </div>
   );

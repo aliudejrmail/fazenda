@@ -412,6 +412,8 @@ model Vaccine {
   batchNumber String?
   /// Validade do lote
   expiryDate  DateTime?
+  /// Inativa: mantém o histórico, mas não aparece em novas campanhas
+  active      Boolean  @default(true)
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -430,6 +432,8 @@ model VaccinationCampaign {
   batchNumber String?
   /// Validade do lote da vacina
   expiryDate  DateTime?
+  /// Despesa (Sanidade) gerada pelo custo da campanha, mantida em sincronia
+  expenseId   String?
   doses       Int
   cost        Decimal  @db.Decimal(14, 2) @default(0)
   notes       String?
