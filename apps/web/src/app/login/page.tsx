@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Field";
 import { Alert } from "@/components/ui/LayoutBits";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
+import { APP_NAME } from "@/lib/brand";
 
 export default function LoginPage() {
   const { login, hasToken, loading } = useAuth();
@@ -66,8 +67,8 @@ export default function LoginPage() {
         </div>
 
         <div className="relative max-w-xl">
-          <h1 className="font-[family-name:var(--font-display)] text-6xl leading-[0.95] tracking-tight xl:text-7xl">
-            Fazenda
+          <h1 className="font-[family-name:var(--font-display)] text-5xl leading-[0.95] tracking-tight xl:text-6xl">
+            {APP_NAME}
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/75">
             Gestão pecuária com visão clara do retiro ao confinamento —
@@ -102,8 +103,8 @@ export default function LoginPage() {
           <div className="mb-8 flex items-center gap-3.5 lg:hidden">
             <Logo size={56} priority className="rounded-2xl border border-[var(--line-strong)]" />
             <div className="min-w-0">
-              <p className="font-[family-name:var(--font-display)] text-4xl leading-none text-[var(--green)]">
-                Fazenda
+              <p className="font-[family-name:var(--font-display)] text-3xl leading-tight text-[var(--green)] sm:text-4xl">
+                {APP_NAME}
               </p>
               <p className="mt-1.5 text-sm text-[var(--ink-muted)]">
                 Gestão de rebanho e operação
@@ -144,7 +145,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
               <Button type="submit" disabled={submitting} className="mt-2 w-full py-2.5">
-                {submitting ? "Entrando..." : "Entrar na fazenda"}
+                {submitting ? "Entrando..." : "Entrar"}
               </Button>
             </form>
           </div>

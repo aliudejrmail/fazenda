@@ -79,7 +79,7 @@ export function configureApp(app: INestApplication) {
 
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
-    .setTitle('Gestão Pecuária API')
+    .setTitle('CicloPecuário API')
     .setDescription(
       'API REST multi-fazenda para gestão de cria, recria e confinamento.',
     )

@@ -1,4 +1,4 @@
-# Gestão Pecuária
+# CicloPecuário
 
 Sistema web multi-fazenda para gestão de cria, recria e confinamento, com API REST pronta para aplicativo mobile futuro.
 

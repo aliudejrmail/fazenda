@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { APP_NAME } from "@/lib/brand";
 
 /**
  * Logo do sistema (emblema "J", arquivo em /public/brand/logo-j.png).
@@ -17,7 +18,7 @@ export function Logo({
   return (
     <Image
       src="/brand/logo-j.png"
-      alt="Logo do sistema"
+      alt={APP_NAME}
       width={size}
       height={size}
       priority={priority}

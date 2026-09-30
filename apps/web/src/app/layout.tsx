@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Source_Sans_3 } from "next/font/google";
 import { AuthProvider } from "@/lib/auth-context";
 import { ConfirmProvider } from "@/components/ui/ConfirmDialog";
+import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
 import "./globals.css";
 // Depois do globals: sobrescreve tokens/superfícies em telas pequenas.
 import "./responsive.css";
@@ -19,8 +20,8 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Fazenda — Gestão pecuária",
-  description: "Sistema de gestão de fazenda e rebanho",
+  title: `${APP_NAME} — ${APP_TAGLINE}`,
+  description: "Sistema de gestão pecuária: retiros, rebanho, alimentação e finanças",
 };
 
 export const viewport: Viewport = {
