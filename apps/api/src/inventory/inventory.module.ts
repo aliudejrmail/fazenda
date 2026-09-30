@@ -6,5 +6,6 @@ import { FarmGuard } from '../common/guards/farm.guard';
 @Module({
   controllers: [InventoryController],
   providers: [InventoryService, FarmGuard],
+  exports: [InventoryService],
 })
 export class InventoryModule {}

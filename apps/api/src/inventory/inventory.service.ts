@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -39,68 +43,105 @@ export class InventoryService {
     });
   }
 
-  async createMovement(farmId: string, dto: CreateStockMovementDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const item = await tx.inventoryItem.findFirst({
-        where: { id: dto.itemId, farmId, deletedAt: null },
-      });
-      if (!item) throw new NotFoundException('Item não encontrado');
+  createMovement(farmId: string, dto: CreateStockMovementDto) {
+    return this.prisma.$transaction((tx) =>
+      this.applyMovement(tx, farmId, dto),
+    );
+  }
 
-      const qty = new Prisma.Decimal(dto.quantity);
-      let newQty = new Prisma.Decimal(item.quantity);
-      let avgCost = new Prisma.Decimal(item.avgUnitCost);
+  /**
+   * Aplica uma movimentação dentro de uma transação já aberta, para que
+   * outros módulos (ex.: campanhas de vacinação) baixem estoque de forma atômica.
+   */
+  async applyMovement(
+    tx: Prisma.TransactionClient,
+    farmId: string,
+    dto: CreateStockMovementDto,
+    campaignId?: string,
+  ) {
+    const item = await tx.inventoryItem.findFirst({
+      where: { id: dto.itemId, farmId, deletedAt: null },
+    });
+    if (!item) throw new NotFoundException('Item não encontrado');
 
-      if (dto.type === 'ENTRADA') {
-        const unitCost = new Prisma.Decimal(dto.unitCost ?? item.avgUnitCost);
-        const totalValue = avgCost.mul(newQty).add(unitCost.mul(qty));
-        newQty = newQty.add(qty);
-        avgCost = newQty.gt(0) ? totalValue.div(newQty) : unitCost;
-      } else if (dto.type === 'SAIDA') {
-        if (newQty.lt(qty)) {
-          throw new BadRequestException('Estoque insuficiente');
-        }
-        newQty = newQty.sub(qty);
-      } else {
-        newQty = qty;
+    const qty = new Prisma.Decimal(dto.quantity);
+    let newQty = new Prisma.Decimal(item.quantity);
+    let avgCost = new Prisma.Decimal(item.avgUnitCost);
+
+    if (dto.type === 'ENTRADA') {
+      const unitCost = new Prisma.Decimal(dto.unitCost ?? item.avgUnitCost);
+      const totalValue = avgCost.mul(newQty).add(unitCost.mul(qty));
+      newQty = newQty.add(qty);
+      avgCost = newQty.gt(0) ? totalValue.div(newQty) : unitCost;
+    } else if (dto.type === 'SAIDA') {
+      if (newQty.lt(qty)) {
+        throw new BadRequestException(
+          `Estoque insuficiente de "${item.name}": ${newQty.toString()} ${item.unit} disponível(is).`,
+        );
       }
+      newQty = newQty.sub(qty);
+    } else {
+      newQty = qty;
+    }
 
-      await tx.inventoryItem.update({
-        where: { id: item.id },
-        data: { quantity: newQty, avgUnitCost: avgCost },
-      });
+    await tx.inventoryItem.update({
+      where: { id: item.id },
+      data: { quantity: newQty, avgUnitCost: avgCost },
+    });
 
-      const totalCost =
-        dto.unitCost != null
-          ? new Prisma.Decimal(dto.unitCost).mul(qty)
-          : avgCost.mul(qty);
+    const totalCost =
+      dto.unitCost != null
+        ? new Prisma.Decimal(dto.unitCost).mul(qty)
+        : avgCost.mul(qty);
 
-      const movement = await tx.stockMovement.create({
+    const movement = await tx.stockMovement.create({
+      data: {
+        farmId,
+        itemId: item.id,
+        type: dto.type,
+        quantity: qty,
+        unitCost: dto.unitCost,
+        totalCost,
+        date: new Date(dto.date),
+        notes: dto.notes,
+        campaignId,
+      },
+      include: { item: true },
+    });
+
+    if (dto.type === 'ENTRADA' && dto.unitCost) {
+      await tx.expense.create({
         data: {
           farmId,
-          itemId: item.id,
-          type: dto.type,
-          quantity: qty,
-          unitCost: dto.unitCost,
-          totalCost,
+          costCenter: 'ALMOXARIFADO',
+          description: `Entrada estoque: ${item.name}`,
+          amount: totalCost,
           date: new Date(dto.date),
-          notes: dto.notes,
         },
-        include: { item: true },
       });
+    }
 
-      if (dto.type === 'ENTRADA' && dto.unitCost) {
-        await tx.expense.create({
-          data: {
-            farmId,
-            costCenter: 'ALMOXARIFADO',
-            description: `Entrada estoque: ${item.name}`,
-            amount: totalCost,
-            date: new Date(dto.date),
-          },
-        });
-      }
+    return movement;
+  }
 
-      return movement;
+  /**
+   * Desfaz as baixas (SAIDA) geradas por uma campanha: devolve a quantidade
+   * ao item e remove as movimentações. Usado ao editar ou excluir a campanha.
+   */
+  async revertCampaignMovements(
+    tx: Prisma.TransactionClient,
+    campaignId: string,
+  ): Promise<boolean> {
+    const movements = await tx.stockMovement.findMany({
+      where: { campaignId, type: 'SAIDA' },
     });
+    for (const m of movements) {
+      await tx.inventoryItem.update({
+        where: { id: m.itemId },
+        data: { quantity: { increment: m.quantity } },
+      });
+    }
+    await tx.stockMovement.deleteMany({ where: { campaignId } });
+    return movements.length > 0;
   }
 }

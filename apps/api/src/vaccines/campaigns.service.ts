@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { CreateCampaignDto, UpdateCampaignDto } from './dto/vaccine.dto';
 import { patchDate, patchText } from './vaccine-utils';
 
@@ -16,7 +17,10 @@ type CampaignWithVaccine = Prisma.VaccinationCampaignGetPayload<{
 
 @Injectable()
 export class CampaignsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inventory: InventoryService,
+  ) {}
 
   list(farmId: string) {
     return this.prisma.vaccinationCampaign.findMany({
@@ -59,6 +63,7 @@ export class CampaignsService {
         },
         include: CAMPAIGN_INCLUDE,
       });
+      await this.consumeStock(tx, campaign);
       return this.syncExpense(tx, campaign);
     });
   }
@@ -80,6 +85,11 @@ export class CampaignsService {
     );
 
     return this.prisma.$transaction(async (tx) => {
+      // Devolve as doses baixadas antes de recalcular (evita baixar duas vezes)
+      const hadStockMovement = await this.inventory.revertCampaignMovements(
+        tx,
+        id,
+      );
       const campaign = await tx.vaccinationCampaign.update({
         where: { id },
         data: {
@@ -95,6 +105,10 @@ export class CampaignsService {
         },
         include: CAMPAIGN_INCLUDE,
       });
+      // Campanhas antigas (sem baixa) só passam a baixar se trocarem de vacina
+      if (hadStockMovement || vaccineChanged) {
+        await this.consumeStock(tx, campaign);
+      }
       return this.syncExpense(tx, campaign);
     });
   }
@@ -102,6 +116,7 @@ export class CampaignsService {
   async remove(farmId: string, id: string) {
     const current = await this.findOne(farmId, id);
     await this.prisma.$transaction(async (tx) => {
+      await this.inventory.revertCampaignMovements(tx, id);
       await this.releaseExpense(tx, current.expenseId);
       await tx.vaccinationCampaign.delete({ where: { id } });
     });
@@ -155,6 +170,27 @@ export class CampaignsService {
         throw new BadRequestException('Lote inválido para esta fazenda');
       }
     }
+  }
+
+  /** Baixa as doses do item do Almoxarifado ligado à vacina (se houver). */
+  private async consumeStock(
+    tx: Prisma.TransactionClient,
+    campaign: CampaignWithVaccine,
+  ) {
+    const itemId = campaign.vaccine.inventoryItemId;
+    if (!itemId) return;
+    await this.inventory.applyMovement(
+      tx,
+      campaign.farmId,
+      {
+        itemId,
+        type: 'SAIDA',
+        quantity: campaign.doses,
+        date: campaign.date.toISOString(),
+        notes: `Campanha vacinal: ${campaign.vaccine.name}`,
+      },
+      campaign.id,
+    );
   }
 
   /**

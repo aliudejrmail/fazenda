@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import type { Campaign, HerdLot, Vaccine } from "@/lib/types";
-import { todayISO } from "@/lib/format";
+import { formatNumber, todayISO } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { Input, Select, Textarea } from "@/components/ui/Field";
 import { FormCard, FormGrid } from "@/components/ui/LayoutBits";
@@ -49,6 +49,7 @@ export function CampaignForm({
   const selectedId = pickedId ?? campaign?.vaccineId ?? options[0]?.id ?? "";
   // Lote/validade: do cadastro ao trocar de vacina; senão os da própria campanha
   const picked = options.find((v) => v.id === pickedId);
+  const selectedVaccine = options.find((v) => v.id === selectedId);
   const source = picked ?? campaign ?? options[0];
   const fieldKey = `${campaign?.id ?? "new"}-${selectedId}`;
 
@@ -134,6 +135,15 @@ export function CampaignForm({
           defaultValue={campaign?.notes ?? ""}
         />
       </FormGrid>
+      {selectedVaccine?.stock ? (
+        <p className="text-sm text-[var(--ink-muted)]">
+          Estoque de <strong>{selectedVaccine.name}</strong>:{" "}
+          {formatNumber(selectedVaccine.stock.quantity)} {selectedVaccine.stock.unit}
+          (s) no Almoxarifado. As doses informadas serão baixadas
+          automaticamente; se o custo já foi lançado na entrada do estoque, deixe
+          o campo Custo em branco.
+        </p>
+      ) : null}
       {onCancel ? (
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar

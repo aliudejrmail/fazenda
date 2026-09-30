@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { Campaign, HerdLot, Vaccine } from "@/lib/types";
+import type { Campaign, HerdLot, InventoryItem, Vaccine } from "@/lib/types";
 import { formatDate, formatNumber } from "@/lib/format";
 import {
   Alert,
@@ -20,21 +20,24 @@ export default function VacinasPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [upcoming, setUpcoming] = useState<Campaign[]>([]);
   const [lots, setLots] = useState<HerdLot[]>([]);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setError("");
     try {
-      const [v, c, u, l] = await Promise.all([
+      const [v, c, u, l, i] = await Promise.all([
         api<Vaccine[]>("/vaccines"),
         api<Campaign[]>("/vaccines/campaigns"),
         api<Campaign[]>("/vaccines/upcoming"),
         api<HerdLot[]>("/herd/lots"),
+        api<InventoryItem[]>("/inventory/items"),
       ]);
       setVaccines(v);
       setCampaigns(c);
       setUpcoming(u);
       setLots(l);
+      setItems(i);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao carregar");
     }
@@ -79,7 +82,12 @@ export default function VacinasPage() {
       />
 
       {tab === "vaccines" ? (
-        <VaccinesTab vaccines={vaccines} onChanged={load} onError={setError} />
+        <VaccinesTab
+          vaccines={vaccines}
+          items={items}
+          onChanged={load}
+          onError={setError}
+        />
       ) : (
         <CampaignsTab
           vaccines={vaccines}

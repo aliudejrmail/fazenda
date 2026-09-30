@@ -414,11 +414,16 @@ model Vaccine {
   expiryDate  DateTime?
   /// Inativa: mantém o histórico, mas não aparece em novas campanhas
   active      Boolean  @default(true)
+  /// Item do Almoxarifado que controla o estoque de doses (opcional)
+  inventoryItemId String?
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
   campaigns   VaccinationCampaign[]
+
+  @@index([inventoryItemId])
 }
 
 model VaccinationCampaign {
@@ -442,6 +447,7 @@ model VaccinationCampaign {
   farm        Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
   vaccine     Vaccine  @relation(fields: [vaccineId], references: [id], onDelete: Cascade)
   herdLot     HerdLot? @relation(fields: [herdLotId], references: [id])
+  stockMovements StockMovement[]
 }
 
 model InventoryItem {
@@ -458,6 +464,7 @@ model InventoryItem {
   deletedAt    DateTime?
   farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
   movements    StockMovement[]
+  vaccines     Vaccine[]
   dietIngredients FeedDietIngredient[]
 }
 
@@ -472,10 +479,13 @@ model StockMovement {
   date         DateTime
   notes        String?
   feedRecordId String?
+  /// Baixa gerada por uma campanha de vacinação
+  campaignId   String?
   createdAt    DateTime          @default(now())
   farm         Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
   item         InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
   feedRecord   FeedRecord?       @relation(fields: [feedRecordId], references: [id], onDelete: SetNull)
+  campaign     VaccinationCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 }
 
 model FeedDiet {

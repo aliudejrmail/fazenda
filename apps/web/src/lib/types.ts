@@ -211,6 +211,15 @@ export type Vaccine = {
   active?: boolean;
   /** Sem campanhas: pode ser excluída. */
   canDelete?: boolean;
+  /** Estoque de doses, controlado por um item do Almoxarifado (null = sem controle). */
+  stock?: {
+    itemId: string;
+    name: string;
+    unit: string;
+    quantity: number;
+    minQuantity: number;
+    low: boolean;
+  } | null;
   notes?: string | null;
 };
 

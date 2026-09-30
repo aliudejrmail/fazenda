@@ -32,6 +32,25 @@ export class CreateVaccineDto {
   @IsDateString()
   expiryDate?: string;
 
+  /** Item existente do Almoxarifado que controla o estoque de doses */
+  @IsOptional()
+  @IsString()
+  inventoryItemId?: string;
+
+  /** Cria um item no Almoxarifado com este estoque inicial (doses) */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  stockDoses?: number;
+
+  /** Estoque mínimo (doses) do item criado junto com a vacina */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Type(() => Number)
+  minStockDoses?: number;
+
   @IsOptional()
   @IsString()
   notes?: string;
